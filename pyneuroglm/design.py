@@ -3,14 +3,13 @@ from math import ceil
 
 import numpy as np
 
-from .basis import conv_basis
+from .basis import conv_basis, delta_stim, raw_stim, boxcar_stim
 
 
 class Design:
     def __init__(self, experiment):
         self.experiment = experiment
         self.covariates = {}
-        self._update_edim()
 
     @property
     def edim(self):
@@ -19,17 +18,27 @@ class Design:
     def add_covariate(self, label, description, handler, basis, offset, condition, **kwargs):
         self.covariates[label] = Covariate(label, description, handler, basis, offset, condition, **kwargs)
 
-    def add_covariate_timing(self):
-        pass
+    def add_covariate_timing(self, label, description, *args, **kwargs):
+        binfun = self.experiment.binfun
+        self.covariates[label] = Covariate(label, description,
+                                           lambda trial: delta_stim(binfun(trial[label]), binfun(trial.duration)),
+                                           *args, **kwargs)
 
     def add_covariate_spike(self):
-        pass
+        raise NotImplementedError()
 
-    def add_covariate_raw(self):
-        pass
+    def add_covariate_raw(self, label, description, *args, **kwargs):
+        self.covariates[label] = Covariate(label, description,
+                                           raw_stim(label),
+                                           *args, **kwargs)
 
-    def add_covariate_boxcar(self):
-        pass
+    def add_covariate_boxcar(self, label, description, on_label, off_label, *args, **kwargs):
+        binfun = self.experiment.binfun
+        self.covariates[label] = Covariate(label, description,
+                                           lambda trial: boxcar_stim(binfun(trial[on_label]),
+                                                                     binfun(trial[off_label]),
+                                                                     binfun(trial.duration)),
+                                           *args, **kwargs)
 
     def _filter_trials(self, trial_indices):
         expt = self.experiment
