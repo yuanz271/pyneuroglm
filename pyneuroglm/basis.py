@@ -109,3 +109,9 @@ def delta_stim(b, nbin, v=1.):
 
 def raw_stim(label):
     return lambda trial: trial[label]
+
+
+def boxcar_stim(start_bin, end_bin, nbin, v=1.):
+    x = np.zeros(nbin)
+    x[start_bin:end_bin] = v
+    return x
