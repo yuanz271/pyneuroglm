@@ -79,5 +79,3 @@ class Trial:
         self.tid = tid
         self.duration = duration
         self.variables = {}
-
-

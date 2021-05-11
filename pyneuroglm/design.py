@@ -41,10 +41,7 @@ class Design:
 
     def get_response(self, label, trial_indices):
         trials = self._filter_trials(trial_indices)
-        rv = []
-        for trial in trials:
-            rv.append(trial[label])
-        rv = np.concatenate(rv)
+        rv = np.concatenate([trial[label] for trial in trials])
         return rv
 
     def compile_design_matrix(self, trial_indices):
