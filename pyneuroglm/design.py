@@ -31,19 +31,32 @@ class Design:
     def add_covariate_boxcar(self):
         pass
 
-    def compile_design_matrix(self, trial_indices):
+    def _filter_trials(self, trial_indices):
         expt = self.experiment
         if trial_indices is not None:
             trials = [expt.trials[idx] for idx in trial_indices]
         else:
             trials = expt.trials.values
+        return trials
+
+    def get_response(self, label, trial_indices):
+        trials = self._filter_trials(trial_indices)
+        rv = []
+        for trial in trials:
+            rv.append(trial[label])
+        rv = np.concatenate(rv)
+        return rv
+
+    def compile_design_matrix(self, trial_indices):
+        expt = self.experiment
+        trials = self._filter_trials(trial_indices)
         # total_bins = sum(np.rint(np.ceil([trial.duration for trial in trials] / expt.binsize)))
 
         dm = []
         for trial in trials:
             nbin = ceil(trial.duration / expt.binsize)
             dmt = []
-            for covar in trial.covars:
+            for covar in self.covariates:
                 if covar.condition is not None and not covar.condition(trial):  # skip trial
                     continue
                 stim = covar.handler(trial, nbin)
