@@ -13,15 +13,16 @@ def make_smooth_temporal_basis(shape, duration, nbasis, binfun):
     :param binfun:
     :return:
     """
+
     def rcos(x, p):
-        return (np.abs(x/p) < .5) * (np.cos(x*2*np.pi/p)*.5 + .5)
+        return (np.abs(x / p) < .5) * (np.cos(x * 2 * np.pi / p) * .5 + .5)
 
     nbin = binfun(duration)
 
-    ttb = np.tile(np.expand_dims(np.arange(1, nbin+1), 1), (1, nbasis))
+    ttb = np.tile(np.expand_dims(np.arange(1, nbin + 1), 1), (1, nbasis))
 
     if shape == 'raised cosine':
-        dbcenter = nbin / (3 + nbasis)
+        dbcenter = nbin / (3. + nbasis)
         width = 4 * dbcenter
         bcenters = 2 * dbcenter + dbcenter * np.arange(nbasis)
         BBstm = rcos(ttb - np.tile(bcenters, (nbin, 1)), width)
@@ -31,7 +32,7 @@ def make_smooth_temporal_basis(shape, duration, nbasis, binfun):
         bcenters = width * np.arange(nbasis) - width / 2
         for k in range(nbasis):
             mask = np.logical_and(ttb[:, k] > ceil(width * k), ttb[:, k] <= ceil(width * (k + 1)))
-            BBstm[mask, k] = 1 / sum(mask)
+            BBstm[mask, k] = 1. / sum(mask)
     else:
         raise ValueError('Unknown shape')
 
