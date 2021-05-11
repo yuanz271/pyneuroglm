@@ -2,10 +2,11 @@ from math import ceil
 
 
 class Variable:
-    def __init__(self, label, description, vtype):
+    def __init__(self, label, description, vtype, ndim=1):
         self.label = label
         self.description = description
         self.type = vtype
+        self.ndim = ndim
 
 
 class Experiment:
@@ -29,17 +30,13 @@ class Experiment:
         if label in self.variables:
             raise ValueError(f'{label} already registered')
 
-    def register_continuous(self, label, description, n_dim=1):
+    def register_continuous(self, label, description, ndim=1):
         self._check_label(label)
-        # self.variables[label]
-        v = Variable(label, description, 'continuous')
-        v.n_dim = n_dim
-        self.variables[label] = v
+        self.variables[label] = Variable(label, description, 'continuous', ndim)
 
     def register_timing(self, label, description):
         self._check_label(label)
-        v = Variable(label, description, 'value')
-        self.variables[label] = v
+        self.variables[label] = Variable(label, description, 'value')
 
     def register_spike(self):
         pass
