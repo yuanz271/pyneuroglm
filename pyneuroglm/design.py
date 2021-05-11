@@ -32,13 +32,21 @@ class Design:
                                            raw_stim(label),
                                            *args, **kwargs)
 
-    def add_covariate_boxcar(self, label, description, on_label, off_label, *args, **kwargs):
+    def add_covariate_boxcar(self, label, description, on_label, off_label, value_label, *args, **kwargs):
         binfun = self.experiment.binfun
-        self.covariates[label] = Covariate(label, description,
-                                           lambda trial: boxcar_stim(binfun(trial[on_label]),
-                                                                     binfun(trial[off_label]),
-                                                                     binfun(trial.duration)),
-                                           *args, **kwargs)
+        if value_label is not None:
+            covar = Covariate(label, description,
+                              lambda trial: trial[value_label] * boxcar_stim(binfun(trial[on_label]),
+                                                                             binfun(trial[off_label]),
+                                                                             binfun(trial.duration)),
+                              *args, **kwargs)
+        else:
+            covar = Covariate(label, description,
+                              lambda trial: boxcar_stim(binfun(trial[on_label]),
+                                                        binfun(trial[off_label]),
+                                                        binfun(trial.duration)),
+                              *args, **kwargs)
+        self.covariates[label] = covar
 
     def _filter_trials(self, trial_indices):
         expt = self.experiment
