@@ -12,12 +12,12 @@ class Design:
         self.covariates = {}
         self._update_edim()
 
-    def _update_edim(self):
-        self.edim = sum((covar.edim for covar in self.covariates))
+    @property
+    def edim(self):
+        return sum((covar.edim for covar in self.covariates))
 
     def add_covariate(self, label, description, handler, basis, offset, condition, **kwargs):
         self.covariates[label] = Covariate(label, description, handler, basis, offset, condition, **kwargs)
-        self._update_edim()
 
     def add_covariate_timing(self):
         pass
