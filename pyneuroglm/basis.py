@@ -105,3 +105,7 @@ def delta_stim(b, nbin, v=1.):
     x = np.zeros(nbin)
     x[b] = v
     return x
+
+
+def raw_stim(label):
+    return lambda trial: trial[label]
