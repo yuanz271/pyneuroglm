@@ -68,4 +68,14 @@ class Trial:
     def __init__(self, tid, duration):
         self.tid = tid
         self.duration = duration
-        self.variables = {}
+        self._variables = {}
+
+    def __getitem__(self, key):
+        return self._variables[key]
+
+    def __setitem__(self, key, value):
+        self._variables[key] = value
+
+    @property
+    def variables(self):
+        return self._variables.items()
