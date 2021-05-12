@@ -56,11 +56,11 @@ class Design:
             trials = expt.trials.values()
         return trials
 
-    def get_response(self, label, trial_indices):
+    def get_response(self, label, trial_indices=None):
         trials = self._filter_trials(trial_indices)
         return np.concatenate([trial[label] for trial in trials])
 
-    def compile_design_matrix(self, trial_indices):
+    def compile_design_matrix(self, trial_indices=None):
         expt = self.experiment
         trials = self._filter_trials(trial_indices)
         # total_bins = sum(np.rint(np.ceil([trial.duration for trial in trials] / expt.binsize)))
