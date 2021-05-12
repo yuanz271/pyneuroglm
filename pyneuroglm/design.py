@@ -94,12 +94,12 @@ class Covariate:
         self.design = design
         self.label = label
         self.description = description
-        self.handler = handler
+        self.handler = handler  # function of trial
         self.basis = basis
         self.offset = offset
         self.condition = condition
 
-        sdim = np.shape(handler(design.expt.trials.values[0]))[1]
+        sdim = np.shape(handler(next(iter(design.experiment.trials.values()))))[1]
         self.sdim = sdim
 
         if basis is None:
