@@ -101,13 +101,13 @@ def conv_basis(x, bases, offset=0):
 
 
 def delta_stim(b, nbin, v=1.):
-    b = b[b < nbin]  # ignore the events after nbin bins
-    x = np.zeros(nbin)
-    x[b] = v
+    x = np.zeros((nbin, 1))
+    if b < nbin:
+        x[b, :] = v
     return x
 
 
 def boxcar_stim(start_bin, end_bin, nbin, v=1.):
-    x = np.zeros(nbin)
-    x[start_bin:end_bin] = v
+    x = np.zeros((nbin, 1))
+    x[start_bin:end_bin, :] = v
     return x
