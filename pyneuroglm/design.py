@@ -13,7 +13,7 @@ class Design:
 
     @property
     def edim(self):
-        return sum((covar.edim for covar in self.covariates))
+        return sum((covar.edim for covar in self.covariates.values()))
 
     def add_covariate(self, label, description, handler, basis, offset, condition, **kwargs):
         self.covariates[label] = Covariate(label, description, handler, basis, offset, condition, **kwargs)
