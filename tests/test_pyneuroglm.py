@@ -1,5 +1,4 @@
-from matplotlib import pyplot as plt
-
+import numpy as np
 
 from pyneuroglm.experiment import Experiment, Trial
 from pyneuroglm.basis import make_smooth_temporal_basis
@@ -13,6 +12,8 @@ def test_experiment():
 
 def test_trial():
     trial = Trial(1, 10)
+    trial['a'] = np.zeros(100)
+    assert trial['a'].shape == (100,)
 
 
 def test_basis():
