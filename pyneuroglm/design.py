@@ -3,7 +3,7 @@ from math import ceil
 
 import numpy as np
 
-from .basis import conv_basis, delta_stim, raw_stim, boxcar_stim
+from .basis import conv_basis, delta_stim, boxcar_stim
 
 
 class Design:
@@ -29,7 +29,7 @@ class Design:
 
     def add_covariate_raw(self, label, description, *args, **kwargs):
         self.covariates[label] = Covariate(label, description,
-                                           raw_stim(label),
+                                           lambda trial: trial[label],
                                            *args, **kwargs)
 
     def add_covariate_boxcar(self, label, description, on_label, off_label, value_label, *args, **kwargs):
@@ -58,8 +58,7 @@ class Design:
 
     def get_response(self, label, trial_indices):
         trials = self._filter_trials(trial_indices)
-        rv = np.concatenate([trial[label] for trial in trials])
-        return rv
+        return np.concatenate([trial[label] for trial in trials])
 
     def compile_design_matrix(self, trial_indices):
         expt = self.experiment
@@ -73,7 +72,7 @@ class Design:
             for covar in self.covariates:
                 if covar.condition is not None and not covar.condition(trial):  # skip trial
                     continue
-                stim = covar.handler(trial, nbin)
+                stim = covar.handler(trial)
                 if covar.basis is None:
                     dmc = stim
                 else:
