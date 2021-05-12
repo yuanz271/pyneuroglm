@@ -26,29 +26,22 @@ class Experiment:
         assert t >= 0.
         return max(1, ceil(t / self.binsize))
 
-    def _check_label(self, label):
-        if label in self.variables:
-            raise ValueError(f'{label} already registered')
-
     def register_continuous(self, label, description, ndim=1):
-        self._check_label(label)
         self.variables[label] = Variable(label, description, 'continuous', ndim)
 
     def register_timing(self, label, description):
-        self._check_label(label)
         self.variables[label] = Variable(label, description, 'value')
 
     def register_spike(self):
         pass
 
     def register_value(self, label, description, timing):
-        self._check_label(label)
         v = Variable(label, description, 'value')
         v.timing = timing
         self.variables[label] = v
 
     def add_trial(self, trial, tid):
-        for label, v in trial.variables.items():
+        for label, v in trial.variables:
             if label not in self.variables:
                 raise ValueError('Unregistered variable')
             elif self.variables[label].type == 'continuous':
