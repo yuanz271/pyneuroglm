@@ -16,11 +16,11 @@ class Design:
         return sum((covar.edim for covar in self.covariates.values()))
 
     def add_covariate(self, label, description, handler, basis, offset, condition, **kwargs):
-        self.covariates[label] = Covariate(label, description, handler, basis, offset, condition, **kwargs)
+        self.covariates[label] = Covariate(self, label, description, handler, basis, offset, condition, **kwargs)
 
     def add_covariate_timing(self, label, description, *args, **kwargs):
         binfun = self.experiment.binfun
-        self.covariates[label] = Covariate(label, description,
+        self.covariates[label] = Covariate(self, label, description,
                                            lambda trial: delta_stim(binfun(trial[label]), binfun(trial.duration)),
                                            *args, **kwargs)
 
@@ -28,20 +28,20 @@ class Design:
         raise NotImplementedError()
 
     def add_covariate_raw(self, label, description, *args, **kwargs):
-        self.covariates[label] = Covariate(label, description,
+        self.covariates[label] = Covariate(self, label, description,
                                            lambda trial: trial[label],
                                            *args, **kwargs)
 
     def add_covariate_boxcar(self, label, description, on_label, off_label, value_label, *args, **kwargs):
         binfun = self.experiment.binfun
         if value_label is not None:
-            covar = Covariate(label, description,
+            covar = Covariate(self, label, description,
                               lambda trial: trial[value_label] * boxcar_stim(binfun(trial[on_label]),
                                                                              binfun(trial[off_label]),
                                                                              binfun(trial.duration)),
                               *args, **kwargs)
         else:
-            covar = Covariate(label, description,
+            covar = Covariate(self, label, description,
                               lambda trial: boxcar_stim(binfun(trial[on_label]),
                                                         binfun(trial[off_label]),
                                                         binfun(trial.duration)),
