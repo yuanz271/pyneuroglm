@@ -10,7 +10,7 @@ class Variable:
 
 
 class Experiment:
-    def __init__(self, time_unit, binsize, eid, params):
+    def __init__(self, time_unit, binsize, eid, params=None):
         assert isinstance(time_unit, str)
         assert binsize > 0
 
