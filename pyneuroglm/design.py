@@ -53,7 +53,7 @@ class Design:
         if trial_indices is not None:
             trials = [expt.trials[idx] for idx in trial_indices]
         else:
-            trials = expt.trials.values
+            trials = expt.trials.values()
         return trials
 
     def get_response(self, label, trial_indices):
