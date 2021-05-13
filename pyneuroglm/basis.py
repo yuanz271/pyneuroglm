@@ -82,9 +82,9 @@ def conv_basis(x, bases, offset=0):
     x = np.asarray(x)
     n, ndim = x.shape
     if offset < 0:  # anti-causal
-        x = np.column_stack((x, np.zeros(-offset, ndim)))
+        x = np.column_stack((x, np.zeros((-offset, ndim))))
     elif offset > 0:  # causal
-        x = np.column_stack((np.zeros(offset, ndim), x))
+        x = np.column_stack((np.zeros((offset, ndim)), x))
     else:
         pass
 
