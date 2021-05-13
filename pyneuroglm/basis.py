@@ -19,7 +19,7 @@ def make_smooth_temporal_basis(shape, duration, nbasis, binfun):
 
     nbin = binfun(duration)
 
-    ttb = np.tile(np.expand_dims(np.arange(1, nbin + 1), 1), (1, nbasis))
+    ttb = np.tile(np.expand_dims(np.arange(1, nbin + 1, dtype=float), 1), (1, nbasis))
 
     if shape == 'raised cosine':
         dbcenter = nbin / (3. + nbasis)
