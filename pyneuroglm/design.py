@@ -69,7 +69,7 @@ class Design:
         for trial in trials:
             nbin = ceil(trial.duration / expt.binsize)
             dmt = []
-            for covar in self.covariates:
+            for covar in self.covariates.values():
                 if covar.condition is not None and not covar.condition(trial):  # skip trial
                     continue
                 stim = covar.handler(trial)
