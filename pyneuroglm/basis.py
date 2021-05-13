@@ -58,17 +58,15 @@ def temporal_bases(x, bases, mask=None):
     n, ndim = x.shape
     tb, nb = bases.shape
     if mask is None:
-        mask = np.full(ndim, nb, fill_value=True, dtype=bool)
-    sI = np.sum(mask, 1)
-    BX = np.zeros(n, sum(sI))
+        mask = np.full((ndim, nb), fill_value=True, dtype=bool)
 
-    sI = np.cumsum(sI)
-    k = 0
+    BX = []
     for kcov in range(ndim):
-        A = convolve2d(x[:, kcov], bases[:, mask[kcov, :]])
-        BX[:, k:sI[kcov]] = A[:n, :]
-        k = sI[kcov] + 1
-
+        A = convolve2d(x[:, [kcov]], bases[:, mask[kcov, :]])
+        BX.append(A[:n, :])
+        # BX[:, k:sI[kcov]] = A[:n, :]
+        # k = sI[kcov] + 1
+    BX = np.column_stack(BX)
     return BX
 
 
