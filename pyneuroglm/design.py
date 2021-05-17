@@ -88,6 +88,9 @@ class Design:
 
         return dm
 
+    def combine_weights(self):
+        raise NotImplementedError()
+
 
 class Covariate:
     def __init__(self, design, label, description, handler, basis=None, offset=0, condition=None, **kwargs):
