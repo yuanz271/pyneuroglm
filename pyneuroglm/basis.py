@@ -1,7 +1,10 @@
+from collections import namedtuple
 from math import ceil
 
 import numpy as np
 from scipy.signal import convolve2d
+
+Basis = namedtuple('Basis', ['shape', 'duration', 'nbasis', 'B', 'edim', 'tr', 'centers'])
 
 
 def make_smooth_temporal_basis(shape, duration, nbasis, binfun):
@@ -36,21 +39,15 @@ def make_smooth_temporal_basis(shape, duration, nbasis, binfun):
     else:
         raise ValueError('Unknown shape')
 
-    bases = Basis()
-    bases.shape = shape
-    bases.duration = duration
-    bases.nbasis = nbasis
-    bases.binfun = binfun
-    bases.B = BBstm
-    bases.edim = bases.B.shape[1]
-    bases.tr = ttb
-    bases.centers = bcenters
+    bases = Basis(shape=shape,
+                  duration=duration,
+                  nbasis=nbasis,
+                  B=BBstm,
+                  edim=BBstm.shape[1],
+                  tr=ttb,
+                  centers=bcenters)
 
     return bases
-
-
-class Basis:
-    pass
 
 
 def temporal_bases(x, bases, mask=None):
@@ -80,12 +77,11 @@ def conv_basis(x, bases, offset=0):
     x = np.asarray(x)
     n, ndim = x.shape
     if offset < 0:  # anti-causal
-        x = np.column_stack((x, np.zeros((-offset, ndim))))
+        x = np.concatenate((x, np.zeros((-offset, ndim))), axis=0)
     elif offset > 0:  # causal
-        x = np.column_stack((np.zeros((offset, ndim)), x))
+        x = np.concatenate((np.zeros((offset, ndim)), x), axis=0)
     else:
         pass
-
     X = temporal_bases(x, bases.B)
 
     if offset < 0:
