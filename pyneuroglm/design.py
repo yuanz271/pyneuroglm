@@ -77,11 +77,12 @@ class Design:
                     dmc = stim
                 else:
                     dmc = conv_basis(stim, covar.basis, covar.offset)
+                    # print(dmc.shape)
                 dmt.append(dmc)
-            dmt = np.column_stack(dmt)
+            dmt = np.concatenate(dmt, axis=1)
             assert dmt.shape == (nbin, self.edim)
             dm.append(dmt)
-        dm = np.row_stack(dm)
+        dm = np.concatenate(dm, axis=0)
 
         if np.any(np.isnan(dm)) or np.any(np.isinf(dm)):
             warnings.warn('Design matrix contains NaN or Inf')
