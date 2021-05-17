@@ -1,7 +1,7 @@
 import numpy as np
 
 from pyneuroglm.experiment import Experiment, Trial
-from pyneuroglm.basis import make_smooth_temporal_basis
+from pyneuroglm.basis import make_smooth_temporal_basis, conv_basis
 
 
 def test_experiment():
@@ -23,3 +23,15 @@ def test_basis():
     # plt.matshow(B.B)
     # plt.show()
     # plt.close()
+
+
+def test_conv_basis():
+    expt = Experiment(time_unit='ms', binsize=10, eid=1, params=())
+    B = make_smooth_temporal_basis('raised cosine', 100, 5, expt.binfun)
+    n = 100
+    d = 2
+    x = np.random.randn(n, d)
+    X = conv_basis(x, B, offset=5)
+    assert X.shape == (100, 10)
+    X = conv_basis(x, B, offset=-5)
+    assert X.shape == (100, 10)
