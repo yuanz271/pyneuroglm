@@ -18,11 +18,18 @@ class Design:
     def add_covariate(self, label, description, handler, basis, offset, condition, **kwargs):
         self.covariates[label] = Covariate(self, label, description, handler, basis, offset, condition, **kwargs)
 
-    def add_covariate_timing(self, label, description, *args, **kwargs):
+    def add_covariate_timing(self, label, description, value_label, *args, **kwargs):
         binfun = self.experiment.binfun
-        self.covariates[label] = Covariate(self, label, description,
-                                           lambda trial: delta_stim(binfun(trial[label]), binfun(trial.duration)),
-                                           *args, **kwargs)
+        if value_label is None:
+            self.covariates[label] = Covariate(self, label, description,
+                                               lambda trial: delta_stim(binfun(trial[label]),
+                                                                        binfun(trial.duration)),
+                                               *args, **kwargs)
+        else:
+            self.covariates[label] = Covariate(self, label, description,
+                                               lambda trial: trial[value_label] * delta_stim(binfun(trial[label]),
+                                                                                             binfun(trial.duration)),
+                                               *args, **kwargs)
 
     def add_covariate_spike(self):
         raise NotImplementedError()
@@ -34,17 +41,17 @@ class Design:
 
     def add_covariate_boxcar(self, label, description, on_label, off_label, value_label, *args, **kwargs):
         binfun = self.experiment.binfun
-        if value_label is not None:
-            covar = Covariate(self, label, description,
-                              lambda trial: trial[value_label] * boxcar_stim(binfun(trial[on_label]),
-                                                                             binfun(trial[off_label]),
-                                                                             binfun(trial.duration)),
-                              *args, **kwargs)
-        else:
+        if value_label is None:
             covar = Covariate(self, label, description,
                               lambda trial: boxcar_stim(binfun(trial[on_label]),
                                                         binfun(trial[off_label]),
                                                         binfun(trial.duration)),
+                              *args, **kwargs)
+        else:
+            covar = Covariate(self, label, description,
+                              lambda trial: trial[value_label] * boxcar_stim(binfun(trial[on_label]),
+                                                                             binfun(trial[off_label]),
+                                                                             binfun(trial.duration)),
                               *args, **kwargs)
         self.covariates[label] = covar
 
