@@ -6,6 +6,9 @@ import numpy as np
 from .basis import conv_basis, delta_stim, boxcar_stim
 
 
+__all__ = ['Design', 'Covariate']
+
+
 class Design:
     def __init__(self, experiment):
         self.experiment = experiment
