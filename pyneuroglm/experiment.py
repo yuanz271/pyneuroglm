@@ -34,17 +34,17 @@ class Experiment:
         self.variables[label] = Variable(label, description, 'value')
 
     def register_spike(self):
-        pass
+        raise NotImplementedError()
 
     def register_value(self, label, description, timing):
         v = Variable(label, description, 'value')
         v.timing = timing
         self.variables[label] = v
 
-    def add_trial(self, trial, tid):
+    def add_trial(self, trial):
         for label, v in trial.variables:
             if label not in self.variables:
-                raise ValueError('Unregistered variable')
+                raise ValueError(f'Unregistered variable: {label}')
             elif self.variables[label].type == 'continuous':
                 assert self.binfun(trial.duration) == v.shape[0]
             elif self.variables[label].type == 'timing':
@@ -56,13 +56,7 @@ class Experiment:
                 pass
             else:
                 raise ValueError('Unknown type')
-        self.trials[tid] = trial
-
-    def get_binned_spike(self):
-        pass
-
-    def get_response_variable(self):
-        pass
+        self.trials[trial.tid] = trial
 
 
 class Trial:
