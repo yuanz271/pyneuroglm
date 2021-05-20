@@ -1,13 +1,17 @@
 import numpy as np
 
-from pyneuroglm.experiment import Experiment, Trial
+from pyneuroglm.experiment import Experiment, Trial, Variable
 from pyneuroglm.basis import make_smooth_temporal_basis, conv_basis
 
 
 def test_experiment():
     expt = Experiment(time_unit='ms', binsize=10, eid=1, params=())
-
     assert expt.binfun(0.) == 1
+
+
+def test_variable():
+    v = Variable('label', 'description', 'type', 2)
+    assert v.label == 'label' and v.description == 'description' and v.type == 'type' and v.ndim == 2
 
 
 def test_trial():
