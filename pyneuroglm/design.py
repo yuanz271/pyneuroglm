@@ -68,16 +68,19 @@ class Design:
 
     def get_response(self, label, trial_indices=None):
         trials = self._filter_trials(trial_indices)
+        # print(sum([trial[label].shape[0] for trial in trials]),
+        #       sum([self.experiment.binfun(trial.duration) for trial in trials]))
         return np.concatenate([trial[label] for trial in trials])
 
     def compile_design_matrix(self, trial_indices=None):
         expt = self.experiment
         trials = self._filter_trials(trial_indices)
-        # total_bins = sum(np.rint(np.ceil([trial.duration for trial in trials] / expt.binsize)))
+        # total_bins = sum([expt.binfun(trial.duration) for trial in trials])
+        # print(total_bins)
 
         dm = []
         for trial in trials:
-            nbin = ceil(trial.duration / expt.binsize)
+            nbin = expt.binfun(trial.duration)
             dmt = []
             for covar in self.covariates.values():
                 if covar.condition is not None and not covar.condition(trial):  # skip trial
