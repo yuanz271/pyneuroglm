@@ -1,12 +1,13 @@
+from dataclasses import dataclass
 from math import ceil
 
 
+@dataclass
 class Variable:
-    def __init__(self, label, description, vtype, ndim=1):
-        self.label = label
-        self.description = description
-        self.type = vtype
-        self.ndim = ndim
+    label: str
+    description: str
+    type: str
+    ndim: int = 1
 
 
 class Experiment:
