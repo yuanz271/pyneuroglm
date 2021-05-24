@@ -20,16 +20,16 @@ class Design:
     def add_covariate(self, label, description, handler, basis, offset, condition, **kwargs):
         self.covariates[label] = Covariate(self, label, description, handler, basis, offset, condition, **kwargs)
 
-    def add_covariate_timing(self, label, description, value_label, *args, **kwargs):
+    def add_covariate_timing(self, label, description, var_label, value_label, *args, **kwargs):
         binfun = self.experiment.binfun
         if value_label is None:
             self.covariates[label] = Covariate(self, label, description,
-                                               lambda trial: delta_stim(binfun(trial[label]),
+                                               lambda trial: delta_stim(binfun(trial[var_label]),
                                                                         binfun(trial.duration)),
                                                *args, **kwargs)
         else:
             self.covariates[label] = Covariate(self, label, description,
-                                               lambda trial: trial[value_label] * delta_stim(binfun(trial[label]),
+                                               lambda trial: trial[value_label] * delta_stim(binfun(trial[var_label]),
                                                                                              binfun(trial.duration)),
                                                *args, **kwargs)
 
