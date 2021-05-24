@@ -1,10 +1,9 @@
 import warnings
-from math import ceil
+from collections import namedtuple
 
 import numpy as np
 
 from .basis import conv_basis, delta_stim, boxcar_stim
-
 
 __all__ = ['Design', 'Covariate']
 
@@ -102,8 +101,10 @@ class Design:
 
         return dm
 
-    def combine_weights(self):
-        raise NotImplementedError()
+    def combine_weights(self, w):
+        ws = np.split(w, (covar.edim for covar in self.covariates.values()), axis=0)
+        W = namedtuple('Weight', [covar.label for covar in self.covariates.values()])
+        return W(*ws)
 
 
 class Covariate:

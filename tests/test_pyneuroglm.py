@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 import numpy as np
 
 from pyneuroglm.experiment import Experiment, Trial, Variable
@@ -39,3 +41,10 @@ def test_conv_basis():
     assert X.shape == (100, 10)
     X = conv_basis(x, B, offset=-5)
     assert X.shape == (100, 10)
+
+
+def test_combine_weights():
+    labels = ['a', 'b', 'c']
+    values = [1, 2, 3]
+    W = namedtuple('Weight', labels)
+    W(*values)
