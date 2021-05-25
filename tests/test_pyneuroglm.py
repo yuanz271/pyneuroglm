@@ -47,4 +47,5 @@ def test_combine_weights():
     labels = ['a', 'b', 'c']
     values = [1, 2, 3]
     W = namedtuple('Weight', labels)
-    W(*values)
+    w = W(*values)
+    assert w == (1, 2, 3)

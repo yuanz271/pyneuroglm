@@ -101,8 +101,8 @@ class Design:
 
         return dm
 
-    def combine_weights(self, w):
-        ws = np.split(w, (covar.edim for covar in self.covariates.values()), axis=0)
+    def combine_weights(self, w, axis=1):
+        ws = np.split(w, np.cumsum([covar.edim for covar in self.covariates.values()])[:-1], axis=axis)
         W = namedtuple('Weight', [covar.label for covar in self.covariates.values()])
         return W(*ws)
 
