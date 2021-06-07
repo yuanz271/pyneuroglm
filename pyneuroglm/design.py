@@ -1,3 +1,4 @@
+from math import ceil
 import warnings
 from collections import namedtuple
 
@@ -33,8 +34,8 @@ class Design:
                                                                                              binfun(trial.duration)),
                                                *args, **kwargs)
 
-    def add_covariate_spike(self):
-        raise NotImplementedError()
+    def add_covariate_spike(self, label, description, var_label, basis, **kwargs):
+        raise NotImplementedError
 
     def add_covariate_raw(self, label, description, *args, **kwargs):
         self.covariates[label] = Covariate(self, label, description,
@@ -70,6 +71,17 @@ class Design:
         # print(sum([trial[label].shape[0] for trial in trials]),
         #       sum([self.experiment.binfun(trial.duration) for trial in trials]))
         return np.concatenate([trial[label] for trial in trials])
+
+    def get_binned_spike(self, label, trial_indices=None):
+        trials = self._filter_trials(trial_indices)
+        expt = self.experiment
+
+        s = np.concatenate([_time2bin(trial[label],
+                                      binwidth=expt.binsize,
+                                      start=0,
+                                      stop=trial.duration
+                                      ) for trial in trials])
+        return s
 
     def compile_design_matrix(self, trial_indices=None):
         expt = self.experiment
@@ -125,3 +137,12 @@ class Covariate:
         else:
             edim = basis.edim * sdim
         self.edim = edim
+
+
+def _time2bin(timing, binwidth, start, stop):
+    duration = stop - start
+    nbin = ceil(duration / binwidth)
+    bins = start + np.arange(nbin + 1) * binwidth  # add the last bin edge
+    s = np.histogram(timing, bins=bins)[0]
+    s = s.astype(np.float)
+    return s
