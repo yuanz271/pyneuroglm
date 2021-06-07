@@ -25,7 +25,7 @@ class Experiment:
 
     def binfun(self, t):
         assert t >= 0.
-        return max(1, ceil(t / self.binsize))
+        return max(1, ceil(t / self.binsize))  # number of bins, minus 1 for bin index
 
     def register_continuous(self, label, description, ndim=1):
         self.variables[label] = Variable(label, description, 'continuous', ndim)
