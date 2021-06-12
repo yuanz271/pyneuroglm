@@ -4,7 +4,7 @@ from collections import namedtuple
 
 import numpy as np
 
-from .basis import conv_basis, delta_stim, boxcar_stim
+from .basis import conv_basis, delta_stim, boxcar_stim, make_nonlinear_raised_cosine
 
 __all__ = ['Design', 'Covariate']
 
@@ -35,7 +35,17 @@ class Design:
                                                *args, **kwargs)
 
     def add_covariate_spike(self, label, description, var_label, basis, **kwargs):
-        raise NotImplementedError
+        offset = 1  # make sure causal. no instantaneous interaction
+        binfun = self.experiment.binfun
+        if basis is None:
+            basis = make_nonlinear_raised_cosine(10, self.experiment.binsize, (0., 100.), 2)
+        covar = Covariate(self, label, description,
+                          lambda trial: delta_stim(binfun(trial[var_label]),
+                                                   binfun(trial.duration)),
+                          basis,
+                          offset,
+                          **kwargs)
+        self.covariates[label] = covar
 
     def add_covariate_raw(self, label, description, *args, **kwargs):
         self.covariates[label] = Covariate(self, label, description,
