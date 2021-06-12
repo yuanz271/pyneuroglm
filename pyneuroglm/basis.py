@@ -1,10 +1,11 @@
+import math
 from collections import namedtuple
 from math import ceil
 
 import numpy as np
 from scipy.signal import convolve2d
 
-Basis = namedtuple('Basis', ['shape', 'duration', 'nbasis', 'B', 'edim', 'tr', 'centers'])
+Basis = namedtuple('Basis', ['func', 'args', 'B', 'edim'])
 
 
 def make_smooth_temporal_basis(shape, duration, nbasis, binfun):
@@ -32,20 +33,17 @@ def make_smooth_temporal_basis(shape, duration, nbasis, binfun):
     elif shape == 'boxcar':
         width = nbin / nbasis
         BBstm = np.zeros_like(ttb)
-        bcenters = width * np.arange(nbasis) - width / 2
+        # bcenters = width * np.arange(nbasis) - width / 2
         for k in range(nbasis):
             mask = np.logical_and(ttb[:, k] > ceil(width * k), ttb[:, k] <= ceil(width * (k + 1)))
             BBstm[mask, k] = 1. / sum(mask)
     else:
         raise ValueError('Unknown shape')
 
-    bases = Basis(shape=shape,
-                  duration=duration,
-                  nbasis=nbasis,
+    bases = Basis(func=make_smooth_temporal_basis,
+                  args=(shape, duration, nbasis, binfun),
                   B=BBstm,
-                  edim=BBstm.shape[1],
-                  tr=ttb,
-                  centers=bcenters)
+                  edim=BBstm.shape[1])
 
     return bases
 
@@ -105,3 +103,38 @@ def boxcar_stim(start_bin, end_bin, nbin, v=1.):
     x = np.zeros((nbin, 1))
     x[start_bin:end_bin, :] = v
     return x
+
+
+def _nlin(x, e=1e-20):
+    return np.log(x + e)
+
+
+def _nlinv(x, e=1e-20):
+    return np.exp(x) - e
+
+
+def nonlinear_raised_cosine(x, c, dc):
+    return (np.cos(np.maximum(-math.pi, np.minimum(math.pi, (x - c) * math.pi / dc / 2))) + 1) / 2
+
+
+def make_nonlinear_raised_cosine(nbasis, binsize, endpoints, offset):
+    assert offset > 0
+    assert len(endpoints) == 2
+
+    endpoints = np.asarray(endpoints)
+    yl, yr = _nlin(endpoints + offset)
+    db = (yr - yl) / (nbasis - 1)  # what if nbasis = 0?
+    centers = np.arange(yl, yr + db, step=db)  # including endpoint
+    max_t = _nlinv(yr + 2 * db) - offset
+    iht = np.expand_dims(np.arange(0, max_t, step=binsize), -1) / binsize
+    ihbasis = nonlinear_raised_cosine(np.tile(_nlin(iht + offset), (1, nbasis)),
+                                      np.tile(centers, (len(iht), 1)),
+                                      db)
+    # ihctrs = _nlinv(centers)
+
+    bases = Basis(func=make_nonlinear_raised_cosine,
+                  args=(nbasis, binsize, endpoints, offset),
+                  B=ihbasis,
+                  edim=ihbasis.shape[1])
+
+    return bases
