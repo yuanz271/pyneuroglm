@@ -93,7 +93,7 @@ class Design:
                                       ) for trial in trials])
         return s
 
-    def compile_design_matrix(self, trial_indices=None):
+    def compile_design_matrix(self, trial_indices=None, concat=True):
         expt = self.experiment
         trials = self._filter_trials(trial_indices)
         # total_bins = sum([expt.binfun(trial.duration) for trial in trials])
@@ -115,11 +115,11 @@ class Design:
                 dmt.append(dmc)
             dmt = np.concatenate(dmt, axis=1)
             assert dmt.shape == (nbin, self.edim)
+            if np.any(np.isnan(dm)) or np.any(np.isinf(dm)):
+                warnings.warn('Design matrix contains NaN or Inf')
             dm.append(dmt)
-        dm = np.concatenate(dm, axis=0)
-
-        if np.any(np.isnan(dm)) or np.any(np.isinf(dm)):
-            warnings.warn('Design matrix contains NaN or Inf')
+        if concat:
+            dm = np.concatenate(dm, axis=0)
 
         return dm
 
