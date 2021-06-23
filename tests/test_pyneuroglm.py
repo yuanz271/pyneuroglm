@@ -2,9 +2,8 @@ from collections import namedtuple
 
 import numpy as np
 
+from pyneuroglm.basis import make_smooth_temporal_basis, conv_basis, make_nonlinear_raised_cosine
 from pyneuroglm.experiment import Experiment, Trial, Variable
-from pyneuroglm.basis import make_smooth_temporal_basis, conv_basis, make_nonlinear_raised_cosine, \
-    nonlinear_raised_cosine
 
 
 def test_experiment():

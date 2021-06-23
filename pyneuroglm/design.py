@@ -82,18 +82,21 @@ class Design:
         #       sum([self.experiment.binfun(trial.duration) for trial in trials]))
         return np.concatenate([trial[label] for trial in trials])
 
-    def get_binned_spike(self, label, trial_indices=None):
+    def get_binned_spike(self, label, trial_indices=None, concat=True):
         trials = self._filter_trials(trial_indices)
         expt = self.experiment
 
-        s = np.concatenate([_time2bin(trial[label],
-                                      binwidth=expt.binsize,
-                                      start=0,
-                                      stop=trial.duration
-                                      ) for trial in trials])
+        s = [_time2bin(trial[label],
+                       binwidth=expt.binsize,
+                       start=0,
+                       stop=trial.duration
+                       ) for trial in trials]
+        if concat:
+            s = np.concatenate(s)
+
         return s
 
-    def compile_design_matrix(self, trial_indices=None):
+    def compile_design_matrix(self, trial_indices=None, concat=True):
         expt = self.experiment
         trials = self._filter_trials(trial_indices)
         # total_bins = sum([expt.binfun(trial.duration) for trial in trials])
@@ -115,11 +118,11 @@ class Design:
                 dmt.append(dmc)
             dmt = np.concatenate(dmt, axis=1)
             assert dmt.shape == (nbin, self.edim)
+            if np.any(np.isnan(dm)) or np.any(np.isinf(dm)):
+                warnings.warn('Design matrix contains NaN or Inf')
             dm.append(dmt)
-        dm = np.concatenate(dm, axis=0)
-
-        if np.any(np.isnan(dm)) or np.any(np.isinf(dm)):
-            warnings.warn('Design matrix contains NaN or Inf')
+        if concat:
+            dm = np.concatenate(dm, axis=0)
 
         return dm
 
