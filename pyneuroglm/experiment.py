@@ -25,10 +25,12 @@ class Experiment:
 
     def binfun(self, t):
         assert t >= 0.
-        return max(1, ceil(t / self.binsize))  # number of bins, minus 1 for bin index
+        return max(1, ceil(
+            t / self.binsize))  # number of bins, minus 1 for bin index
 
     def register_continuous(self, label, description, ndim=1):
-        self.variables[label] = Variable(label, description, 'continuous', ndim)
+        self.variables[label] = Variable(label, description, 'continuous',
+                                         ndim)
 
     def register_timing(self, label, description):
         self.variables[label] = Variable(label, description, 'value')

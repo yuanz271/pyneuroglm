@@ -17,13 +17,13 @@ def make_smooth_temporal_basis(shape, duration, nbasis, binfun):
     :param binfun:
     :return:
     """
-
     def rcos(x, p):
         return (np.abs(x / p) < .5) * (np.cos(x * 2 * np.pi / p) * .5 + .5)
 
     nbin = binfun(duration)
 
-    ttb = np.tile(np.expand_dims(np.arange(1, nbin + 1, dtype=float), 1), (1, nbasis))
+    ttb = np.tile(np.expand_dims(np.arange(1, nbin + 1, dtype=float), 1),
+                  (1, nbasis))
 
     if shape == 'raised cosine':
         dbcenter = nbin / (3. + nbasis)
@@ -35,7 +35,8 @@ def make_smooth_temporal_basis(shape, duration, nbasis, binfun):
         BBstm = np.zeros_like(ttb)
         # bcenters = width * np.arange(nbasis) - width / 2
         for k in range(nbasis):
-            mask = np.logical_and(ttb[:, k] > ceil(width * k), ttb[:, k] <= ceil(width * (k + 1)))
+            mask = np.logical_and(ttb[:, k] > ceil(width * k),
+                                  ttb[:, k] <= ceil(width * (k + 1)))
             BBstm[mask, k] = 1. / sum(mask)
     else:
         raise ValueError('Unknown shape')
@@ -114,7 +115,9 @@ def _nlinv(x, e=1e-20):
 
 
 def nonlinear_raised_cosine(x, c, dc):
-    return (np.cos(np.maximum(-math.pi, np.minimum(math.pi, (x - c) * math.pi / dc / 2))) + 1) / 2
+    return (np.cos(
+        np.maximum(-math.pi, np.minimum(math.pi,
+                                        (x - c) * math.pi / dc / 2))) + 1) / 2
 
 
 def make_nonlinear_raised_cosine(nbasis, binsize, endpoints, offset):
@@ -127,9 +130,9 @@ def make_nonlinear_raised_cosine(nbasis, binsize, endpoints, offset):
     centers = np.arange(yl, yr + db, step=db)  # including endpoint
     max_t = _nlinv(yr + 2 * db) - offset
     iht = np.expand_dims(np.arange(0, max_t, step=binsize), -1) / binsize
-    ihbasis = nonlinear_raised_cosine(np.tile(_nlin(iht + offset), (1, nbasis)),
-                                      np.tile(centers, (len(iht), 1)),
-                                      db)
+    ihbasis = nonlinear_raised_cosine(
+        np.tile(_nlin(iht + offset), (1, nbasis)),
+        np.tile(centers, (len(iht), 1)), db)
     # ihctrs = _nlinv(centers)
 
     bases = Basis(func=make_nonlinear_raised_cosine,

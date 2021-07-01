@@ -19,7 +19,7 @@ def test_variable():
 def test_trial():
     trial = Trial(1, 10)
     trial['a'] = np.zeros(100)
-    assert trial['a'].shape == (100,)
+    assert trial['a'].shape == (100, )
 
 
 def test_make_smooth_temporal_basis():
@@ -56,7 +56,8 @@ def test_combine_weights():
 def test_make_nonlinear_raised_cosine():
     basis_matlab = np.load('basis.npy', allow_pickle=True)
     B = basis_matlab['B'][()]
-    param = basis_matlab['param'][()]  # dtype=[('nBases', 'O'), ('binSize', 'O'), ('endPoints', 'O'), ('nlOffset', 'O')])
+    param = basis_matlab['param'][(
+    )]  # dtype=[('nBases', 'O'), ('binSize', 'O'), ('endPoints', 'O'), ('nlOffset', 'O')])
     nBases, binSize, endPoints, nlOffset = param.tolist()
 
     basis = make_nonlinear_raised_cosine(nBases, binSize, endPoints, nlOffset)

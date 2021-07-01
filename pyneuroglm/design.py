@@ -18,54 +18,58 @@ class Design:
     def edim(self):
         return sum((covar.edim for covar in self.covariates.values()))
 
-    def add_covariate(self, label, description, handler, basis, offset, condition, **kwargs):
-        self.covariates[label] = Covariate(self, label, description, handler, basis, offset, condition, **kwargs)
+    def add_covariate(self, label, description, handler, basis, offset,
+                      condition, **kwargs):
+        self.covariates[label] = Covariate(self, label, description, handler,
+                                           basis, offset, condition, **kwargs)
 
-    def add_covariate_timing(self, label, description, var_label, value_label, *args, **kwargs):
+    def add_covariate_timing(self, label, description, var_label, value_label,
+                             *args, **kwargs):
         binfun = self.experiment.binfun
         if value_label is None:
-            self.covariates[label] = Covariate(self, label, description,
-                                               lambda trial: delta_stim(binfun(trial[var_label]),
-                                                                        binfun(trial.duration)),
-                                               *args, **kwargs)
+            self.covariates[label] = Covariate(
+                self, label, description, lambda trial: delta_stim(
+                    binfun(trial[var_label]), binfun(trial.duration)), *args,
+                **kwargs)
         else:
-            self.covariates[label] = Covariate(self, label, description,
-                                               lambda trial: trial[value_label] * delta_stim(binfun(trial[var_label]),
-                                                                                             binfun(trial.duration)),
-                                               *args, **kwargs)
+            self.covariates[label] = Covariate(
+                self, label, description,
+                lambda trial: trial[value_label] * delta_stim(
+                    binfun(trial[var_label]), binfun(trial.duration)), *args,
+                **kwargs)
 
-    def add_covariate_spike(self, label, description, var_label, basis, **kwargs):
+    def add_covariate_spike(self, label, description, var_label, basis,
+                            **kwargs):
         offset = 1  # make sure causal. no instantaneous interaction
         binfun = self.experiment.binfun
         if basis is None:
-            basis = make_nonlinear_raised_cosine(10, self.experiment.binsize, (0., 100.), 2)
-        covar = Covariate(self, label, description,
-                          lambda trial: delta_stim(binfun(trial[var_label]),
-                                                   binfun(trial.duration)),
-                          basis,
-                          offset,
-                          **kwargs)
+            basis = make_nonlinear_raised_cosine(10, self.experiment.binsize,
+                                                 (0., 100.), 2)
+        covar = Covariate(
+            self, label, description, lambda trial: delta_stim(
+                binfun(trial[var_label]), binfun(trial.duration)), basis,
+            offset, **kwargs)
         self.covariates[label] = covar
 
     def add_covariate_raw(self, label, description, *args, **kwargs):
         self.covariates[label] = Covariate(self, label, description,
-                                           lambda trial: trial[label],
-                                           *args, **kwargs)
+                                           lambda trial: trial[label], *args,
+                                           **kwargs)
 
-    def add_covariate_boxcar(self, label, description, on_label, off_label, value_label, *args, **kwargs):
+    def add_covariate_boxcar(self, label, description, on_label, off_label,
+                             value_label, *args, **kwargs):
         binfun = self.experiment.binfun
         if value_label is None:
-            covar = Covariate(self, label, description,
-                              lambda trial: boxcar_stim(binfun(trial[on_label]),
-                                                        binfun(trial[off_label]),
-                                                        binfun(trial.duration)),
-                              *args, **kwargs)
+            covar = Covariate(
+                self, label, description, lambda trial: boxcar_stim(
+                    binfun(trial[on_label]), binfun(trial[off_label]),
+                    binfun(trial.duration)), *args, **kwargs)
         else:
-            covar = Covariate(self, label, description,
-                              lambda trial: trial[value_label] * boxcar_stim(binfun(trial[on_label]),
-                                                                             binfun(trial[off_label]),
-                                                                             binfun(trial.duration)),
-                              *args, **kwargs)
+            covar = Covariate(
+                self, label, description,
+                lambda trial: trial[value_label] * boxcar_stim(
+                    binfun(trial[on_label]), binfun(trial[off_label]),
+                    binfun(trial.duration)), *args, **kwargs)
         self.covariates[label] = covar
 
     def _filter_trials(self, trial_indices):
@@ -86,11 +90,12 @@ class Design:
         trials = self._filter_trials(trial_indices)
         expt = self.experiment
 
-        s = [_time2bin(trial[label],
-                       binwidth=expt.binsize,
-                       start=0,
-                       stop=trial.duration
-                       ) for trial in trials]
+        s = [
+            _time2bin(trial[label],
+                      binwidth=expt.binsize,
+                      start=0,
+                      stop=trial.duration) for trial in trials
+        ]
         if concat:
             s = np.concatenate(s)
 
@@ -107,7 +112,8 @@ class Design:
             nbin = expt.binfun(trial.duration)
             dmt = []
             for covar in self.covariates.values():
-                if covar.condition is not None and not covar.condition(trial):  # skip trial
+                if covar.condition is not None and not covar.condition(
+                        trial):  # skip trial
                     continue
                 stim = covar.handler(trial)
                 if covar.basis is None:
@@ -127,13 +133,25 @@ class Design:
         return dm
 
     def combine_weights(self, w, axis=1):
-        ws = np.split(w, np.cumsum([covar.edim for covar in self.covariates.values()])[:-1], axis=axis)
-        W = namedtuple('Weight', [covar.label for covar in self.covariates.values()])
+        ws = np.split(
+            w,
+            np.cumsum([covar.edim for covar in self.covariates.values()])[:-1],
+            axis=axis)
+        W = namedtuple('Weight',
+                       [covar.label for covar in self.covariates.values()])
         return W(*ws)
 
 
 class Covariate:
-    def __init__(self, design, label, description, handler, basis=None, offset=0, condition=None, **kwargs):
+    def __init__(self,
+                 design,
+                 label,
+                 description,
+                 handler,
+                 basis=None,
+                 offset=0,
+                 condition=None,
+                 **kwargs):
         self.design = design
         self.label = label
         self.description = description
@@ -142,7 +160,8 @@ class Covariate:
         self.offset = offset
         self.condition = condition
 
-        sdim = np.shape(handler(next(iter(design.experiment.trials.values()))))[1]
+        sdim = np.shape(handler(next(iter(
+            design.experiment.trials.values()))))[1]
         self.sdim = sdim
 
         if basis is None:
