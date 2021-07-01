@@ -15,10 +15,12 @@ pyNeuroGLM
 .. contents:: **Table of Contents**
     :backlinks: none
 
+A Python version of <https://github.com/pillowlab/neuroGLM>
+
 Installation
 ------------
 
-`pyneuroglm` is available on Linux/macOS and supports 3.6+.
+`pip install git+https://github.com/yuanz271/pyneuroglm.git`.
 
 
 License
