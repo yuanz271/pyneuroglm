@@ -10,13 +10,18 @@ __all__ = ['Design', 'Covariate']
 
 
 class Design:
+    covariates = {}
+    bias = False
+
     def __init__(self, experiment):
         self.experiment = experiment
-        self.covariates = {}
 
     @property
     def edim(self):
         return sum((covar.edim for covar in self.covariates.values()))
+
+    def add_constant(self, bias=True):
+        self.bias = bias
 
     def add_covariate(self, label, description, handler, basis, offset,
                       condition, **kwargs):
@@ -126,6 +131,8 @@ class Design:
             assert dmt.shape == (nbin, self.edim)
             if np.any(np.isnan(dm)) or np.any(np.isinf(dm)):
                 warnings.warn('Design matrix contains NaN or Inf')
+            if self.bias:
+                dmt = np.column_stack([np.ones(dmt.shape[0]), dmt])
             dm.append(dmt)
         if concat:
             dm = np.concatenate(dm, axis=0)
