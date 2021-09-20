@@ -25,7 +25,7 @@ Installation
 
 Tutorial
 --------
-`_tutorial.md: ./tutorial.md`
+`tutorial.md <./tutorial.md>`_
 
 
 License
