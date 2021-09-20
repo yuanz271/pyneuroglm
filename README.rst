@@ -23,6 +23,11 @@ Installation
 `pip install git+https://github.com/yuanz271/pyneuroglm.git`.
 
 
+Tutorial
+--------
+<tutorial.md>
+
+
 License
 -------
 
