@@ -25,7 +25,8 @@ Installation
 
 Tutorial
 --------
-<tutorial.md>
+`tutorial.md <https://github.com/yuanz271/pyneuroglm/blob/c0c43fda4bd94b7b01c8498b54ca3bd6bd172607/tutorial.md
+>`
 
 
 License
