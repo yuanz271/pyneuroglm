@@ -15,7 +15,7 @@ pyneuroglm
 .. contents:: **Table of Contents**
     :backlinks: none
 
-A Python version of <https://github.com/pillowlab/neuroGLM>
+A Python version of https://github.com/pillowlab/neuroGLM
 
 Installation
 ------------
