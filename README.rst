@@ -20,7 +20,7 @@ A Python version of https://github.com/pillowlab/neuroGLM
 Installation
 ------------
 
-`pip install git+https://github.com/yuanz271/pyneuroglm.git`.
+``pip install git+https://github.com/yuanz271/pyneuroglm.git``
 
 
 Tutorial
