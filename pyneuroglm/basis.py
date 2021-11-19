@@ -94,9 +94,10 @@ def conv_basis(x, bases, offset=0):
 
 
 def delta_stim(b, nbin, v=1.):
+    b = np.asarray(b)
     x = np.zeros((nbin, 1))
-    if b < nbin:
-        x[b, :] = v
+    bb = b[b < nbin] 
+    x[b, :] = v
     return x
 
 
