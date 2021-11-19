@@ -129,7 +129,7 @@ class Design:
                 dmt.append(dmc)
             dmt = np.concatenate(dmt, axis=1)
             assert dmt.shape == (nbin, self.edim)
-            if np.any(np.isnan(dm)) or np.any(np.isinf(dm)):
+            if np.any(np.isnan(dmt)) or np.any(np.isinf(dmt)):
                 warnings.warn('Design matrix contains NaN or Inf')
             if self.bias:
                 dmt = np.column_stack([np.ones(dmt.shape[0]), dmt])
