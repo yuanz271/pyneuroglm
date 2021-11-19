@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from math import ceil
+
+import numpy as np
 
 
 @dataclass
@@ -24,9 +25,8 @@ class Experiment:
         self.trials = {}
 
     def binfun(self, t):
-        assert t >= 0.
-        return max(1, ceil(
-            t / self.binsize))  # number of bins, minus 1 for bin index
+        assert np.all(t >= 0.)
+        return np.maximum(1, np.ceil(t / self.binsize)).astype(int)  # number of bins, minus 1 for bin index
 
     def register_continuous(self, label, description, ndim=1):
         self.variables[label] = Variable(label, description, 'continuous',
