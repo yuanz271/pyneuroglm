@@ -99,7 +99,7 @@ The design specification object `dspec` contains specification of how each covar
 
 For a timing variable, the following syntax adds a **delta function** at the time of the event:
 ```python
-dspec.addCovariateTiming('fpon', 'fpon', 'Fixation On')
+dspec.add_covariate_timing(label='fpon', description='Fixation On', var_label='fpon')
 ```
 However, this is seldom what you want. You probably want to have temporal basis to represent delayed effects of the covariate to the response variable.
 Let's make a set of 8 boxcar basis functions to cover 300 ms evenly:
@@ -110,7 +110,7 @@ and use this to represent the effect of timing event instead.
 
 If you want to use autoregressive point process modeling (often known as GLM in neuroscience) by adding the spike history filter, you can do the following:
 ```python
-dspec = buildGLM.add_covariate_spike(label='hist', description='History filter', var_label='sptrain')
+dspec.add_covariate_spike(label='hist', description='History filter', var_label='sptrain')
 ```
 This adds spike history filters with default history basis functions.
 
