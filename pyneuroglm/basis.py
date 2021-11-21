@@ -96,7 +96,7 @@ def conv_basis(x, bases, offset=0):
 def delta_stim(b, nbin, v=1.):
     b = np.asarray(b)
     x = np.zeros((nbin, 1))
-    bb = b[b < nbin] 
+    bb = b[b < nbin]
     x[b, :] = v
     return x
 
@@ -128,12 +128,16 @@ def make_nonlinear_raised_cosine(nbasis, binsize, endpoints, offset):
     endpoints = np.asarray(endpoints)
     yl, yr = _nlin(endpoints + offset)
     db = (yr - yl) / (nbasis - 1)  # what if nbasis = 0?
-    centers = np.arange(yl, yr + db, step=db)  # including endpoint
+    # centers = np.arange(yl, yr + db, step=db)  # including endpoint
+    # centers = centers[:nbasis]  # make sure centers 
+    centers = np.linspace(yl, yr, num=nbasis)
     max_t = _nlinv(yr + 2 * db) - offset
     iht = np.expand_dims(np.arange(0, max_t, step=binsize), -1) / binsize
-    ihbasis = nonlinear_raised_cosine(
-        np.tile(_nlin(iht + offset), (1, nbasis)),
-        np.tile(centers, (len(iht), 1)), db)
+    
+    a = np.tile(_nlin(iht + offset), (1, nbasis))
+    b = np.tile(centers, (len(iht), 1))
+
+    ihbasis = nonlinear_raised_cosine(a, b, db)
     # ihctrs = _nlinv(centers)
 
     bases = Basis(func=make_nonlinear_raised_cosine,
