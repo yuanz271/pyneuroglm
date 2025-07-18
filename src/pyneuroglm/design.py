@@ -183,5 +183,5 @@ def _time2bin(timing, binwidth, start, stop):
     nbin = ceil(duration / binwidth)
     bins = start + np.arange(nbin + 1) * binwidth  # add the last bin edge
     s = np.histogram(timing, bins=bins)[0]
-    s = s.astype(np.float)
+    s = s.astype(float)
     return s

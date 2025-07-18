@@ -97,7 +97,7 @@ def delta_stim(b, nbin, v=1.):
     b = np.asarray(b)
     x = np.zeros((nbin, 1))
     bb = b[b < nbin]
-    x[b, :] = v
+    x[bb, :] = v
     return x
 
 

@@ -9,6 +9,7 @@ class Variable:
     description: str
     type: str
     ndim: int = 1
+    timing: float | None = None
 
 
 class Experiment:
