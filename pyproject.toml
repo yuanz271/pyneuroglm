@@ -1,0 +1,22 @@
+[project]
+name = "pyneuroglm"
+version = "2025.7.18"
+description = "A Python port of neuroGLM"
+readme = "README.rst"
+authors = [
+    { name = "yuanz", email = "yuanz271@gmail.com" }
+]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=2.3.1",
+    "scipy>=1.16.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.0,<0.9"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+]
