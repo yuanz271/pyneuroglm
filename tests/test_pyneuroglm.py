@@ -1,4 +1,5 @@
 from collections import namedtuple
+from pathlib import Path
 
 import numpy as np
 
@@ -54,7 +55,7 @@ def test_combine_weights():
 
 
 def test_make_nonlinear_raised_cosine():
-    basis_matlab = np.load('basis.npy', allow_pickle=True)
+    basis_matlab = np.load(Path(__file__).parent / 'basis.npy', allow_pickle=True)
     B = basis_matlab['B'][()]
     param = basis_matlab['param'][(
     )]  # dtype=[('nBases', 'O'), ('binSize', 'O'), ('endPoints', 'O'), ('nlOffset', 'O')])
