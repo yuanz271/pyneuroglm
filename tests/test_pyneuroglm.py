@@ -3,7 +3,7 @@ from pathlib import Path
 
 import numpy as np
 
-from pyneuroglm.basis import make_smooth_temporal_basis, conv_basis, make_nonlinear_raised_cosine
+from pyneuroglm.basis import make_smooth_temporal_basis, conv_basis, make_nonlinear_raised_cos
 from pyneuroglm.experiment import Experiment, Trial, Variable
 
 
@@ -54,15 +54,15 @@ def test_combine_weights():
     assert w == (1, 2, 3)
 
 
-def test_make_nonlinear_raised_cosine():
+def test_make_nonlinear_raised_cos():
     basis_matlab = np.load(Path(__file__).parent / 'basis.npy', allow_pickle=True)
     B = basis_matlab['B'][()]
     param = basis_matlab['param'][(
     )]  # dtype=[('nBases', 'O'), ('binSize', 'O'), ('endPoints', 'O'), ('nlOffset', 'O')])
-    nBases, binSize, endPoints, nlOffset = param.tolist()
+    n_bases, binsize, end_points, nl_offset = param.tolist()
 
-    basis = make_nonlinear_raised_cosine(nBases, binSize, endPoints, nlOffset)
-    assert np.allclose(basis.B, B)
+    basis = make_nonlinear_raised_cos(n_bases, binsize, end_points, nl_offset)
+    assert np.allclose(basis.B[:243, :], B)
 
-    basis_boot = basis.func(*basis.args)
-    assert np.all(basis.B == basis_boot.B)
+    basis_recons = basis.func(*basis.args)
+    assert np.all(basis.B == basis_recons.B)

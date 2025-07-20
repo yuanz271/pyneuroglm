@@ -4,7 +4,7 @@ from collections import namedtuple
 
 import numpy as np
 
-from .basis import conv_basis, delta_stim, boxcar_stim, make_nonlinear_raised_cosine
+from .basis import conv_basis, delta_stim, boxcar_stim, make_nonlinear_raised_cos
 
 __all__ = ['Design', 'Covariate']
 
@@ -48,7 +48,7 @@ class Design:
         offset = 1  # make sure causal. no instantaneous interaction
         binfun = self.experiment.binfun
         if basis is None:
-            basis = make_nonlinear_raised_cosine(10, self.experiment.binsize,
+            basis = make_nonlinear_raised_cos(10, self.experiment.binsize,
                                                  (0., 100.), 2)
         covar = Covariate(
             self, label, description, lambda trial: delta_stim(
