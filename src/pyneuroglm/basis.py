@@ -13,16 +13,17 @@ class Basis:
     Represents a basis for modeling functions, with constructor function, arguments,
     basis matrix B, and effective dimension edim.
     """
+
     name: str
     func: Callable
     args: Tuple[Any, ...]
     B: np.ndarray
     edim: int
-    tr: np.ndarray|None = None
-    centers: np.ndarray|None = None
+    tr: np.ndarray
+    centers: np.ndarray
 
 
-def make_smooth_temporal_basis(shape, duration, nbasis, binfun):
+def make_smooth_temporal_basis(shape, duration, n_bases, binfun):
     """
     :param shape: 'raised cosine' or 'boxcar'
     :param duration: time to be covered
@@ -31,36 +32,39 @@ def make_smooth_temporal_basis(shape, duration, nbasis, binfun):
     :return:
     """
 
-    def rcos(x, p):
-        return (np.abs(x / p) < 0.5) * (np.cos(x * 2 * np.pi / p) * 0.5 + 0.5)
+    def rcos(x, period):
+        return np.where(np.abs(x / period) < 0.5, np.cos(x * 2 * np.pi / period) * 0.5 + 0.5, 0)
 
-    nbin = binfun(duration)
-
-    ttb = np.tile(np.expand_dims(np.arange(1, nbin + 1, dtype=float), 1), (1, nbasis))
+    n_bins = binfun(duration)  # total number of bins
+    
+    tt = np.arange(1, n_bins + 1, dtype=float)
+    ttb = np.tile(tt[:, None], (1, n_bases))
 
     if shape == "raised cosine":
-        dbcenter = nbin / (3.0 + nbasis)
+        dbcenter = n_bins / (3.0 + n_bases)
         width = 4 * dbcenter
-        bcenters = 2 * dbcenter + dbcenter * np.arange(nbasis)
-        BBstm = rcos(ttb - np.tile(bcenters, (nbin, 1)), width)
+        bcenters = 2 * dbcenter + dbcenter * np.arange(n_bases)
+        BBstm = rcos(ttb - bcenters[None, :], width)
     elif shape == "boxcar":
-        width = nbin / nbasis
+        width = n_bins / n_bases
         BBstm = np.zeros_like(ttb)
-        # bcenters = width * np.arange(nbasis) - width / 2
-        for k in range(nbasis):
+        bcenters = width * np.arange(1, n_bases + 1) - width / 2
+        for k in range(n_bases):
             mask = np.logical_and(
                 ttb[:, k] > ceil(width * k), ttb[:, k] <= ceil(width * (k + 1))
             )
             BBstm[mask, k] = 1.0 / sum(mask)
     else:
-        raise ValueError("Unknown shape")
+        raise ValueError(f"Unknown basis shape: {shape}")
 
     bases = Basis(
         name=shape,
         func=make_smooth_temporal_basis,
-        args=(shape, duration, nbasis, binfun),
+        args=(shape, duration, n_bases, binfun),
         B=BBstm,
         edim=BBstm.shape[1],
+        tr=tt - 1,
+        centers=bcenters
     )
 
     return bases
@@ -189,7 +193,7 @@ def make_nonlinear_raised_cos(n_bases, binsize, end_points, nl_offset):
     mxt = invnl(y_range[1] + 2 * db) - nl_offset
 
     # Time lattice in units of bins
-    iht = np.arange(0, mxt + binsize, binsize) / binsize
+    iht = np.arange(0, mxt + np.finfo(mxt.dtype).eps, binsize) / binsize
 
     # Compute basis matrix: shape (len(tr), n_bases)
     phi = nlin(iht + nl_offset)

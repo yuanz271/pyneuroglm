@@ -28,10 +28,6 @@ def test_make_smooth_temporal_basis():
     basis = make_smooth_temporal_basis('raised cosine', 100, 5, expt.binfun)
     basis_boot = basis.func(*basis.args)
     assert np.all(basis.B == basis_boot.B)
-    # print('\n', B.B)
-    # plt.matshow(B.B)
-    # plt.show()
-    # plt.close()
 
 
 def test_conv_basis():
@@ -62,7 +58,7 @@ def test_make_nonlinear_raised_cos():
     n_bases, binsize, end_points, nl_offset = param.tolist()
 
     basis = make_nonlinear_raised_cos(n_bases, binsize, end_points, nl_offset)
-    assert np.allclose(basis.B[:243, :], B)
+    assert np.allclose(basis.B, B)
 
     basis_recons = basis.func(*basis.args)
     assert np.all(basis.B == basis_recons.B)
