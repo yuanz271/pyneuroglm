@@ -25,9 +25,13 @@ class Experiment:
         self.variables = {}
         self.trials = {}
 
-    def binfun(self, t):
+    def binfun(self, t, ceiling=False):
+        """Event time to bin index"""
         assert np.all(t >= 0.)
-        return np.maximum(1, np.ceil(t / self.binsize)).astype(int)  # number of bins, minus 1 for bin index
+        idx = t / self.binsize
+        if ceiling:
+            idx = np.ceil(idx)
+        return idx.astype(int)
 
     def register_continuous(self, label, description, ndim=1):
         self.variables[label] = Variable(label, description, 'continuous',
