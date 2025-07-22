@@ -16,7 +16,7 @@ class Basis:
 
     name: str
     func: Callable
-    args: Tuple[Any, ...]
+    kwargs: dict
     B: np.ndarray
     edim: int
     tr: np.ndarray
@@ -57,10 +57,10 @@ def make_smooth_temporal_basis(shape, duration, n_bases, binfun):
     else:
         raise ValueError(f"Unknown basis shape: {shape}")
 
-    bases = Basis(
+    basis = Basis(
         name=shape,
         func=make_smooth_temporal_basis,
-        args=(shape, duration, n_bases, binfun),
+        kwargs=dict(shape=shape, duration=duration, n_bases=n_bases, binfun=binfun),
         B=BBstm,
         edim=BBstm.shape[1],
         tr=tt - 1,
@@ -144,11 +144,11 @@ def make_nonlinear_raised_cos(n_bases, binsize, end_points, nl_offset):
     n_bases : int
         Number of basis vectors.
     binsize : float
-        Time bin size in ms.
+        Time bin size.
     end_points : array-like, shape (2,)
-        [first_peak, last_peak] in ms for the centers of the cosines.
+        [first_peak, last_peak] for the centers of the cosines.
     nl_offset : float
-        Offset for nonlinear stretching in ms (must be > 0).
+        Offset for nonlinear stretching in the same unit of binsize (must be > 0).
 
     Returns
     -------
@@ -180,7 +180,8 @@ def make_nonlinear_raised_cos(n_bases, binsize, end_points, nl_offset):
         return np.exp(y) - 1e-20
 
     # Map end points through log-stretch
-    y_range = nlin(np.array(end_points) + nl_offset)
+    end_points = np.array(end_points)
+    y_range = nlin(end_points + nl_offset)
 
     # Spacing in the transformed domain
     db = (y_range[1] - y_range[0]) / (n_bases - 1)
@@ -202,13 +203,13 @@ def make_nonlinear_raised_cos(n_bases, binsize, end_points, nl_offset):
     # Map centers back to original time axis
     ihctrs = invnl(ctrs)
 
-    bases = Basis(
+    basis = Basis(
         name=make_nonlinear_raised_cos.__name__,
         func=make_nonlinear_raised_cos,
-        args=(n_bases, binsize, end_points, nl_offset),
+        kwargs=dict(n_bases=n_bases, binsize=binsize, end_points=end_points, nl_offset=nl_offset),
         B=ihbasis,
         edim=np.size(ihbasis, 1),
         tr=iht,
         centers=ihctrs,
     )
-    return bases
+    return basis
