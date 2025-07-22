@@ -1,6 +1,15 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from enum import StrEnum
+from typing import Any
 
 import numpy as np
+
+
+class VariableType(StrEnum):
+    CONTINUOUS = "continuous"
+    TIMING = "timing"
+    VALUE = "value"
+    SPIKE = "spike"
 
 
 @dataclass
@@ -12,26 +21,22 @@ class Variable:
     timing: float | None = None
 
 
+@dataclass
 class Experiment:
-    def __init__(self, time_unit, binsize, eid, params=None):
-        assert isinstance(time_unit, str)
-        assert binsize > 0
+    time_unit: str
+    binsize: float | int
+    eid: str
+    meta: dict | None = None
+    variables: dict[Any, Variable] = field(default_factory=dict)
+    trials: dict = field(default_factory=dict)
 
-        self.time_unit = time_unit
-        self.binsize = binsize
-        self.eid = eid
-        self.params = params
-
-        self.variables = {}
-        self.trials = {}
-
-    def binfun(self, t, ceiling=False):
+    def binfun(self, t, return_n_bins=False):
         """Event time to bin index"""
         assert np.all(t >= 0.)
         idx = t / self.binsize
-        if ceiling:
+        if return_n_bins:
             idx = np.ceil(idx)
-        return idx.astype(int)
+        return np.int_(idx)
 
     def register_continuous(self, label, description, ndim=1):
         self.variables[label] = Variable(label, description, 'continuous',
@@ -52,25 +57,22 @@ class Experiment:
         for label, v in trial.variables:
             if label not in self.variables:
                 raise ValueError(f'Unregistered variable: {label}')
-            elif self.variables[label].type == 'continuous':
-                assert self.binfun(trial.duration) == v.shape[0]
-            elif self.variables[label].type == 'timing':
-                assert v.ndim == 1
-                assert min(v) >= 0. and max(v) < trial.duration
-            elif self.variables[label].type == 'value':
-                pass
-            elif self.variables[label].type == 'spike':
-                pass
-            else:
-                raise ValueError('Unknown type')
+                        
+            match self.variables[label].type:
+                case VariableType.CONTINUOUS:
+                    assert self.binfun(trial.duration, True) == v.shape[0]
+                case VariableType.TIMING:
+                    assert v.ndim == 1
+                    assert min(v) >= 0. and max(v) < trial.duration
+                
         self.trials[trial.tid] = trial
 
 
+@dataclass
 class Trial:
-    def __init__(self, tid, duration):
-        self.tid = tid
-        self.duration = duration
-        self._variables = {}
+    tid: Any
+    duration: float
+    _variables: dict = field(init=False, default_factory=dict)
 
     def __getitem__(self, key):
         return self._variables[key]

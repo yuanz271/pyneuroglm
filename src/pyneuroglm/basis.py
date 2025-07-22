@@ -13,7 +13,6 @@ class Basis:
     Represents a basis for modeling functions, with constructor function, arguments,
     basis matrix B, and effective dimension edim.
     """
-
     name: str
     func: Callable
     kwargs: dict
@@ -35,7 +34,7 @@ def make_smooth_temporal_basis(shape, duration, n_bases, binfun):
     def rcos(x, period):
         return np.where(np.abs(x / period) < 0.5, np.cos(x * 2 * np.pi / period) * 0.5 + 0.5, 0)
 
-    n_bins = binfun(duration)  # total number of bins
+    n_bins = binfun(duration, True)  # total number of bins
     
     tt = np.arange(1, n_bins + 1, dtype=float)
     ttb = np.tile(tt[:, None], (1, n_bases))
@@ -94,14 +93,17 @@ def temporal_bases(x, B, mask=None, addDC=False):
     return BX
 
 
-def conv_basis(x, basis, offset=0):
+def conv_basis(x, basis, offset: int=0):
     """
     :param x: [T, dx]
     :param basis: basis
-    :param offset: scalar
+    :param offset: bins
     :return:
     """
     x = np.asarray(x)
+
+    assert x.ndim == 2
+
     n, ndim = x.shape
     if offset < 0:  # anti-causal
         x = np.concatenate((x, np.zeros((-offset, ndim))), axis=0)
@@ -129,7 +131,7 @@ def delta_stim(bt, n_bins, v:np.ndarray|None=None):
     assert len(o) == len(v)
 
     stim = coo_matrix((v, (bt, o)), shape=(n_bins, 1))
-    
+    # print(stim)
     return stim.toarray()
 
 
@@ -141,9 +143,9 @@ def boxcar_stim(start_bin, end_bin, nbin, v=1.0):
 
 # Raised-cosine function
 def raised_cos(x, c, dc):
-    arg = 0.5 * (x - c) * np.pi / dc
-    arg = np.clip(arg, -np.pi, np.pi)
-    return (np.cos(arg) + 1) * 0.5
+    d = 0.5 * (x - c) * np.pi / dc
+    d = np.clip(d, -np.pi, np.pi)
+    return (np.cos(d) + 1) * 0.5
 
 
 def make_nonlinear_raised_cos(n_bases, binsize, end_points, nl_offset):
@@ -191,28 +193,28 @@ def make_nonlinear_raised_cos(n_bases, binsize, end_points, nl_offset):
         return np.exp(y) - 1e-20
 
     # Map end points through log-stretch
-    end_points = np.array(end_points)
-    y_range = nlin(end_points + nl_offset)
+    end_points = np.asarray(end_points)
+    end_bins = end_points / binsize
+    offset = nl_offset / binsize
 
+    y_range = nlin(end_bins + offset)
     # Spacing in the transformed domain
     db = (y_range[1] - y_range[0]) / (n_bases - 1)
 
     # Centers in transformed space
-    # ctrs = np.arange(y_range[0], y_range[1] + db, db)
     ctrs = np.linspace(y_range[0], y_range[1], n_bases, endpoint=True)
-
-    # Maximum time (in ms) before mapping back
-    mxt = invnl(y_range[1] + 2 * db) - nl_offset
+    
+    # Maximum time before mapping back
+    mxt = invnl(y_range[1] + 2 * db) - offset
 
     # Time lattice in units of bins
-    iht = np.arange(0, mxt + np.finfo(mxt.dtype).eps, binsize) / binsize
-
+    iht = np.arange(0, mxt + np.finfo(mxt.dtype).eps)
+    
     # Compute basis matrix: shape (len(tr), n_bases)
-    phi = nlin(iht + nl_offset)
+    phi = nlin(iht + offset)  # column vector 281, 1, ctrs is row vector 1, 10
     ihbasis = raised_cos(phi[:, None], ctrs[None, :], db)
-
     # Map centers back to original time axis
-    ihctrs = invnl(ctrs)
+    ihctrs = invnl(ctrs) * binsize
 
     basis = Basis(
         name=make_nonlinear_raised_cos.__name__,
