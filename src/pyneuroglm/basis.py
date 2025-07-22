@@ -1,10 +1,10 @@
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Tuple
 from math import ceil
 
 import numpy as np
 from scipy.signal import convolve2d
+from scipy.sparse import coo_matrix
 
 
 @dataclass
@@ -67,30 +67,37 @@ def make_smooth_temporal_basis(shape, duration, n_bases, binfun):
         centers=bcenters
     )
 
-    return bases
+    return basis
 
 
-def temporal_bases(x, bases, mask=None):
+def temporal_bases(x, B, mask=None, addDC=False):
     x = np.asarray(x)
-    n, ndim = x.shape
-    tb, nb = bases.shape
-    if mask is None:
-        mask = np.full((ndim, nb), fill_value=True, dtype=bool)
+    B = np.asarray(B)
 
-    BX = []
-    for kcov in range(ndim):
-        A = convolve2d(x[:, [kcov]], bases[:, mask[kcov, :]])
-        BX.append(A[:n, :])
-        # BX[:, k:sI[kcov]] = A[:n, :]
-        # k = sI[kcov] + 1
-    BX = np.column_stack(BX)
+    T, dx = x.shape
+    TB, M = B.shape
+
+    if mask is None:
+        mask = np.ones((dx, M), dtype=bool)
+    
+    sI = np.sum(mask, 1)  # bases oer covariate
+    BX = np.zeros((T, np.sum(sI) + addDC))
+    sI = np.cumsum(sI)
+    col = 0
+    for k in range(dx):
+        A = convolve2d(x[:, [k]], B[:, mask[k, :]])
+        BX[:, col:sI[k]] = A[:T, :]
+        col = sI[k]
+
+    if addDC:
+        BX[:, -1] = 1
     return BX
 
 
-def conv_basis(x, bases, offset=0):
+def conv_basis(x, basis, offset=0):
     """
     :param x: [T, dx]
-    :param bases: basis
+    :param basis: basis
     :param offset: scalar
     :return:
     """
@@ -102,24 +109,28 @@ def conv_basis(x, bases, offset=0):
         x = np.concatenate((np.zeros((offset, ndim)), x), axis=0)
     else:
         pass
-    X = temporal_bases(x, bases.B)
+    X = temporal_bases(x, basis.B)
 
     if offset < 0:
         X = X[-offset:, :]
     elif offset > 0:
         X = X[:-offset, :]
-    else:
-        pass
 
     return X
 
 
-def delta_stim(b, nbin, v=1.0):
-    b = np.asarray(b)
-    x = np.zeros((nbin, 1))
-    bb = b[b < nbin]
-    x[bb, :] = v
-    return x
+def delta_stim(bt, n_bins, v:np.ndarray|None=None):
+    bidx = bt < n_bins
+    bt = bt[bidx]
+    o = np.zeros_like(bt, dtype=np.int_)
+
+    v = np.ones_like(bt)  if v is None else v[bidx]
+
+    assert len(o) == len(v)
+
+    stim = coo_matrix((v, (bt, o)), shape=(n_bins, 1))
+    
+    return stim.toarray()
 
 
 def boxcar_stim(start_bin, end_bin, nbin, v=1.0):

@@ -26,7 +26,7 @@ def test_trial():
 def test_make_smooth_temporal_basis():
     expt = Experiment(time_unit='ms', binsize=10, eid=1, params=())
     basis = make_smooth_temporal_basis('raised cosine', 100, 5, expt.binfun)
-    basis_boot = basis.func(*basis.args)
+    basis_boot = basis.func(**basis.kwargs)
     assert np.all(basis.B == basis_boot.B)
 
 
@@ -60,5 +60,5 @@ def test_make_nonlinear_raised_cos():
     basis = make_nonlinear_raised_cos(n_bases, binsize, end_points, nl_offset)
     assert np.allclose(basis.B, B)
 
-    basis_recons = basis.func(*basis.args)
+    basis_recons = basis.func(**basis.kwargs)
     assert np.all(basis.B == basis_recons.B)
