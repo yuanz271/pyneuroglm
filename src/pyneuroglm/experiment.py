@@ -40,10 +40,10 @@ class Experiment:
     def register_timing(self, label, description):
         self.variables[label] = Variable(label, description, 'value')
 
-    def register_spike(self):
-        raise NotImplementedError()
+    def register_spike_train(self, label, description):
+        self.variables[label] = Variable(label, description, "spike")
 
-    def register_value(self, label, description, timing):
+    def register_value(self, label, description, timing=None):
         v = Variable(label, description, 'value')
         v.timing = timing
         self.variables[label] = v
