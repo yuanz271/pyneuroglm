@@ -148,7 +148,7 @@ def raised_cos(x, c, dc):
     return (np.cos(d) + 1) * 0.5
 
 
-def make_nonlinear_raised_cos(n_bases, binsize, end_points, nl_offset):
+def make_nonlinear_raised_cos(n_bases, binsize_in_ms, end_points_in_ms, nl_offset_in_ms):
     """
     Create a nonlinearly stretched raised-cosine temporal basis.
 
@@ -156,12 +156,12 @@ def make_nonlinear_raised_cos(n_bases, binsize, end_points, nl_offset):
     ----------
     n_bases : int
         Number of basis vectors.
-    binsize : float
-        Time bin size.
-    end_points : array-like, shape (2,)
-        [first_peak, last_peak] for the centers of the cosines.
-    nl_offset : float
-        Offset for nonlinear stretching in the same unit of binsize (must be > 0).
+    binsize_in_ms : float
+        Time bin size in ms.
+    end_points_in_ms : array-like, shape (2,)
+        [first_peak, last_peak] for the centers of the cosines in ms.
+    nl_offset_in_ms : float
+        Offset for nonlinear stretching in ms (must be > 0).
 
     Returns
     -------
@@ -182,7 +182,7 @@ def make_nonlinear_raised_cos(n_bases, binsize, end_points, nl_offset):
         centers : ndarray
             Centers of each basis function (in ms).
     """
-    if nl_offset <= 0:
+    if nl_offset_in_ms <= 0:
         raise ValueError("nl_offset must be greater than 0")
 
     # Nonlinearity and its inverse
@@ -193,11 +193,9 @@ def make_nonlinear_raised_cos(n_bases, binsize, end_points, nl_offset):
         return np.exp(y) - 1e-20
 
     # Map end points through log-stretch
-    end_points = np.asarray(end_points)
-    end_bins = end_points / binsize
-    offset = nl_offset / binsize
+    end_points_in_ms = np.asarray(end_points_in_ms)
+    y_range = nlin(end_points_in_ms + nl_offset_in_ms)
 
-    y_range = nlin(end_bins + offset)
     # Spacing in the transformed domain
     db = (y_range[1] - y_range[0]) / (n_bases - 1)
 
@@ -205,21 +203,22 @@ def make_nonlinear_raised_cos(n_bases, binsize, end_points, nl_offset):
     ctrs = np.linspace(y_range[0], y_range[1], n_bases, endpoint=True)
     
     # Maximum time before mapping back
-    mxt = invnl(y_range[1] + 2 * db) - offset
+    mxt = invnl(y_range[1] + 2 * db) - nl_offset_in_ms
 
     # Time lattice in units of bins
-    iht = np.arange(0, mxt + np.finfo(mxt.dtype).eps)
+    min_time_interval = 1.
+    iht = np.arange(0, mxt + min_time_interval, binsize_in_ms) / binsize_in_ms
     
     # Compute basis matrix: shape (len(tr), n_bases)
-    phi = nlin(iht + offset)  # column vector 281, 1, ctrs is row vector 1, 10
+    phi = nlin(iht + nl_offset_in_ms)  # column vector 281, 1, ctrs is row vector 1, 10
     ihbasis = raised_cos(phi[:, None], ctrs[None, :], db)
     # Map centers back to original time axis
-    ihctrs = invnl(ctrs) * binsize
+    ihctrs = invnl(ctrs)
 
     basis = Basis(
         name=make_nonlinear_raised_cos.__name__,
         func=make_nonlinear_raised_cos,
-        kwargs=dict(n_bases=n_bases, binsize=binsize, end_points=end_points, nl_offset=nl_offset),
+        kwargs=dict(n_bases=n_bases, binsize_in_ms=binsize_in_ms, end_points_in_ms=end_points_in_ms, nl_offset_in_ms=nl_offset_in_ms),
         B=ihbasis,
         edim=np.size(ihbasis, 1),
         tr=iht,

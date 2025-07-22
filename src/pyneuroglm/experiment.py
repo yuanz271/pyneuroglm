@@ -37,6 +37,16 @@ class Experiment:
         if return_n_bins:
             idx = np.ceil(idx)
         return np.int_(idx)
+    
+    def time_unit_to_ms_ratio(self):
+        """Convert time to millisecond"""
+        match self.time_unit:
+            case "ms":
+                return 1
+            case "s":
+                return 1000
+            case _:
+                raise ValueError(f"Undefined time unit {self.time_unit}")
 
     def register_continuous(self, label, description, ndim=1):
         self.variables[label] = Variable(label, description, 'continuous',

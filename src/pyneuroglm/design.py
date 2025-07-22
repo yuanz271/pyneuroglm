@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from .experiment import Experiment
 from .basis import conv_basis, delta_stim, boxcar_stim, make_nonlinear_raised_cos, Basis
 
 
@@ -15,7 +16,7 @@ __all__ = ["Design", "Covariate"]
 
 @dataclass
 class Design:
-    experiment: Any
+    experiment: Experiment
     covariates: dict = field(default_factory=dict)
     bias = False
 
@@ -59,10 +60,10 @@ class Design:
             description = label
         if basis is None:
             basis = make_nonlinear_raised_cos(
-                10, self.experiment.binsize, (0.0, 0.1), self.experiment.binsize
+                10, self.experiment.time_unit_to_ms_ratio() * self.experiment.binsize, (0., 100.), 1.
             )
 
-        offset = basis.kwargs["nl_offset"]
+        offset = basis.kwargs["nl_offset_in_ms"] / self.experiment.time_unit_to_ms_ratio()
         assert offset > 0, (
             "offset must be greater than 0"
         )  # make sure causal. no instantaneous interaction
