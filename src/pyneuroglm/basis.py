@@ -200,7 +200,7 @@ def delta_stim(bt: ArrayLike, n_bins: int, v: NDArray | None = None) -> NDArray:
     return stim.toarray()
 
 
-def boxcar_stim(start_bin: int, end_bin: int, nbin: int, v: float = 1.0) -> NDArray:
+def boxcar_stim(start_bin: int, end_bin: int, n_bins: int, v: float = 1.0) -> NDArray:
     """
     Create a boxcar (rectangular) stimulus vector with constant value over a specified interval.
 
@@ -209,14 +209,15 @@ def boxcar_stim(start_bin: int, end_bin: int, nbin: int, v: float = 1.0) -> NDAr
     :param end_bin: End index of the boxcar (exclusive).
     :type end_bin: int
     :param nbin: Total number of time bins.
-    :type nbin: int
+    :type n_bins: int
     :param v: Value to assign within the boxcar interval (default 1.0).
     :type v: float
     :returns: Stimulus array of shape (nbin, 1) with value v in [start_bin:end_bin], zeros elsewhere.
     :rtype: numpy.ndarray
     """
-    x = np.zeros((nbin, 1))
-    x[start_bin:end_bin, :] = v
+    x = np.zeros((n_bins, 1))
+    x[start_bin:end_bin, :] = v  # NOTE: neuroGLM effectively uses the right bin edge, but we use the left bin edge.
+    
     return x
 
 
