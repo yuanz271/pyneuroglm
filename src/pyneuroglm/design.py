@@ -2,20 +2,21 @@ from math import ceil
 from typing import Any
 import warnings
 from collections.abc import Callable
-from collections import namedtuple
 from dataclasses import dataclass, field
 
 import numpy as np
+from numpy.typing import NDArray
 
 from .experiment import Experiment
 from .basis import conv_basis, delta_stim, boxcar_stim, make_nonlinear_raised_cos, Basis
+from .util import zscore
 
 
-__all__ = ["Design", "Covariate"]
+__all__ = ["DesignMatrix", "Covariate"]
 
 
 @dataclass
-class Design:
+class DesignMatrix:
     """
     GLM design matrix builder for experiments.
 
@@ -28,7 +29,15 @@ class Design:
     """
     experiment: Experiment
     covariates: dict = field(default_factory=dict)
-    bias = False
+    bias: bool = False
+    zstats: dict = field(default_factory=dict)
+    _X: NDArray | None = field(init=False, default=None)
+    
+    @property
+    def X(self) -> NDArray:
+        if self._X is None:
+            raise RuntimeError("Design matrix has not been compiled")
+        return self._X
 
     @property
     def edim(self):
@@ -117,8 +126,6 @@ class Design:
         :param basis: Basis object for the spike covariate, or None for default.
         :type basis: Basis or None
         """
-        if description is None:
-            description = label
         if basis is None:
             basis = make_nonlinear_raised_cos(
                 10, self.experiment.time_unit_to_ms_ratio * self.experiment.binsize, (0., 100.), 1.
@@ -157,7 +164,7 @@ class Design:
         )
 
     def add_covariate_boxcar(
-        self, label, on_label, off_label, description=None, value_label=None
+        self, label, on_label, off_label, description=None, **kwargs
     ):
         """
         Add a boxcar (rectangular) covariate.
@@ -170,36 +177,44 @@ class Design:
         :type off_label: str
         :param description: Description of the covariate.
         :type description: str or None
-        :param value_label: Label in trial dict for boxcar value (optional).
-        :type value_label: str or None
         """
-        if description is None:
-            description = label
-
         binfun = self.experiment.binfun
-        if value_label is None:
-            covar = Covariate(
-                self,
-                label,
-                description,
-                lambda trial: boxcar_stim(
-                    binfun(trial[on_label]),
-                    binfun(trial[off_label]),
-                    binfun(trial.duration, True),
-                ),
-            )
-        else:
-            covar = Covariate(
-                self,
-                label,
-                description,
-                lambda trial: boxcar_stim(
-                    binfun(trial[on_label]),
-                    binfun(trial[off_label]),
-                    binfun(trial.duration, True),
-                    trial[value_label],
-                ),
-            )
+        # if value_label is None:
+            # covar = Covariate(
+            #     self,
+            #     label,
+            #     description,
+            #     lambda trial: boxcar_stim(
+            #         binfun(trial[on_label]),
+            #         binfun(trial[off_label]),
+            #         binfun(trial.duration, True),
+            #     ),
+            # )
+        # else:
+        #     covar = Covariate(
+        #         self,
+        #         label,
+        #         description,
+        #         lambda trial: boxcar_stim(
+        #             binfun(trial[on_label]),
+        #             binfun(trial[off_label]),
+        #             binfun(trial.duration, True),
+        #             trial[value_label],
+        #         ),
+        #     )
+
+        covar = Covariate(
+            self,
+            label,
+            description,
+            lambda trial: boxcar_stim(
+                binfun(trial[on_label]),
+                binfun(trial[off_label], True),  # NOTE: next bin if the event ocurred at the right bin edge
+                binfun(trial.duration, True),
+            ),
+            **kwargs,
+        )
+
         self.covariates[label] = covar
 
     def _filter_trials(self, trial_indices):
@@ -234,7 +249,7 @@ class Design:
 
     def get_binned_spike(
         self, label, trial_indices=None, concat=True
-    ) -> np.ndarray | list:
+    ) -> NDArray:
         """
         Get binned spike counts for a label across selected trials.
 
@@ -254,12 +269,11 @@ class Design:
             _time2bin(trial[label], binwidth=expt.binsize, start=0, stop=trial.duration)
             for trial in trials
         ]
-        if concat:
-            s = np.concatenate(s)
+        s = np.concatenate(s)
 
         return s
 
-    def compile_design_matrix(self, trial_indices=None) -> np.ndarray:
+    def compile_design_matrix(self, trial_indices=None) -> NDArray:
         """
         Compile the design matrix for selected trials.
 
@@ -294,19 +308,19 @@ class Design:
                 dmt.append(dmc)
             dmt = np.concatenate(dmt, axis=1)
             assert dmt.shape == (n_bins, self.edim)
-            if np.any(np.isnan(dmt)) or np.any(np.isinf(dmt)):
+            if not np.all(np.isfinite(dmt)):
                 warnings.warn("Design matrix contains NaN or Inf")
             if self.bias:
                 dmt = np.column_stack([np.ones(dmt.shape[0]), dmt])
             dm.append(dmt)
 
-        dm = np.concatenate(dm, axis=0)
+        self._X = np.concatenate(dm, axis=0)
 
-        return dm
+        return self._X
 
-    def combine_weights(self, w, axis=1):
+    def combine_weights(self, w):
         """
-        Split a weight vector into named fields for each covariate.
+        Split a weight vector into named fields for each covariate and combine with bases.
 
         :param w: Weight vector or matrix.
         :type w: numpy.ndarray
@@ -315,13 +329,44 @@ class Design:
         :returns: Named tuple of weight arrays for each covariate.
         :rtype: namedtuple
         """
-        ws = np.split(
+        # TODO: constant column
+        assert self.edim == len(w)
+        
+        sections = np.cumsum([covar.edim for covar in self.covariates.values()])[:-1]
+
+        ws = np.array_split(
             w,
-            np.cumsum([covar.edim for covar in self.covariates.values()])[:-1],
-            axis=axis,
+            sections,
         )
-        W = namedtuple("Weight", [covar.label for covar in self.covariates.values()])
-        return W(*ws)
+        
+        binsize = self.experiment.binsize
+
+        def covar_weight(covar: Covariate, w):
+            basis = covar.basis
+            
+            if basis is None:
+                tr = (np.arange(len(w)) + covar.offset) * binsize
+                wout = w
+            else:
+                # combine weights and basis
+                sdim = covar.edim // basis.edim  # raw variable dimension
+                wout = np.zeros((basis.B.shape[0], sdim))
+                for k in range(sdim):
+                    wk = w[np.arange(basis.edim) + basis.edim * k]
+                    wk2 = np.sum(wk * basis.B, -1)  # sum over bases
+                    wout[:, k] = wk2
+                if basis.tr.ndim == 2:
+                    tr = basis.tr[:, 0]
+                else:
+                    tr = basis.tr
+
+                tr = np.tile((tr[:, None] + covar.offset) * binsize, (1, sdim))
+
+            return dict(label=covar.label, tr=tr, data=wout)
+
+        w_dict = {covar.label: covar_weight(covar, wk) for covar, wk in zip(self.covariates.values(), ws)}
+        
+        return w_dict
 
     def get_design_matrix_col_indices(self, covar_labels: str | list[str]):
         """
@@ -347,6 +392,23 @@ class Design:
             [indices[covar_label] for covar_label in covar_labels]
         )
         return col_indices
+    
+    def zscore_columns(self, column_indices=None):
+        X = self.X
+
+        if column_indices is None:
+            X, m, s = zscore(X)
+        else:
+            Z, mm, ss = zscore(X[:, column_indices])
+            m = np.zeros((1, X.shape[1]))
+            s = np.ones((1, X.shape[1]))
+            m[:, column_indices] = mm
+            s[:, column_indices] = ss
+            X[:, column_indices] = Z
+        
+        self._X = X
+        self.zstats['m'] = m
+        self.zstats['s'] = s
 
 
 @dataclass
@@ -373,7 +435,7 @@ class Covariate:
     :param edim: Effective dimension (set automatically).
     :type edim: int
     """
-    design: Design
+    design: DesignMatrix
     label: str
     description: str | None
     handler: Callable
