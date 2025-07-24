@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
@@ -69,7 +70,7 @@ class Experiment:
     eid: str
     meta: dict | None = None
     variables: dict[Any, Variable] = field(default_factory=dict)
-    trials: dict = field(default_factory=dict)
+    trials: OrderedDict = field(default_factory=OrderedDict)
     time_unit_to_ms_ratio: float = 1.
 
     def __post_init__(self):
