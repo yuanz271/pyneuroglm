@@ -85,14 +85,14 @@ class Experiment:
             case _:
                 raise ValueError(f"Undefined time unit {self.time_unit}")
 
-    def binfun(self, t: ArrayLike, return_n_bins: bool=False) -> Any:
+    def binfun(self, t: ArrayLike, right_edge: bool=False) -> Any:
         """
         Convert event time(s) to bin index or number of bins.
 
         :param t: Event time(s) as array-like.
         :type t: array-like
-        :param return_n_bins: If True, return number of bins instead of indices.
-        :type return_n_bins: bool
+        :param right_edge: Use the right bin edge to determine, equal to number of bins indices.
+        :type right_edge: bool
         :returns: Bin index/indices or number of bins.
         :rtype: int, numpy.ndarray, or scalar
         """
@@ -100,10 +100,12 @@ class Experiment:
         assert np.all(t > 0)
 
         idx = t / self.binsize
-        if return_n_bins:
-            idx = np.ceil(idx)
-
+        idx = np.maximum(np.ceil(idx), 1)
         idx = idx.astype(int)
+
+        if not right_edge:
+            idx -= 1
+
         if np.ndim(idx) == 0:
             idx = idx.item()
         
