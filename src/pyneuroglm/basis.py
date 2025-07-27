@@ -66,7 +66,7 @@ def make_smooth_temporal_basis(
 
     n_bins = binfun(duration, True)  # total number of bins
 
-    tt = np.arange(1, n_bins + 1, dtype=float)
+    tt = np.arange(1, n_bins + 1, dtype=float)  # matlab index
     ttb = np.tile(tt[:, None], (1, n_bases))
 
     if shape == "raised cosine":
