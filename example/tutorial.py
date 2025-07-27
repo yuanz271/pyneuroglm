@@ -3,10 +3,13 @@ from pathlib import Path
 import numpy as np
 from matplotlib import pyplot as plt
 from pymatreader import read_mat
-from sklearn.linear_model import PoissonRegressor
+# from sklearn.linear_model import PoissonRegressor
+
 from pyneuroglm import basis
 from pyneuroglm.experiment import Experiment, Trial
 from pyneuroglm.design import DesignMatrix
+from pyneuroglm.regression import prior
+from pyneuroglm.regression.posterior import get_posterior_weights
 
 
 def print_sparse(x):
@@ -17,7 +20,8 @@ def print_sparse(x):
 
 
 def main():
-    matfile = read_mat(Path(__file__).parent / "exampleData.mat")
+    this_dir = Path(__file__).parent
+    matfile = read_mat(this_dir / "exampleData.mat")
     print(matfile.keys())
 
     nTrials = matfile['nTrials']
@@ -106,7 +110,7 @@ def main():
     fig, ax = plt.subplots()
     ax.imshow(X, aspect="auto", cmap='jet', interpolation='none')
     fig.show()
-    fig.savefig('dm.pdf')
+    fig.savefig(this_dir / 'dm.pdf')
     plt.close()
 
     # %% Get spike train
@@ -123,30 +127,20 @@ def main():
     col_inds = dm.get_design_matrix_col_indices('LFP')
     dm.zscore_columns(col_inds)
     
-    matfile = read_mat(Path(__file__).parent / "exampleDM.mat")
+    matfile = read_mat(this_dir / "exampleDM.mat")
     matX = matfile['Z']
-    # assert dm.X.shape == matX.shape
-    
-    # for covar in dm.covariates.keys():
-    #     col_inds = dm.get_design_matrix_col_indices(covar)
-
-    #     fig, ax = plt.subplots()
-    #     D = dm.X[:, col_inds] - matX[:, col_inds]
-    #     vm = np.max(np.abs(D))
-    #     ax.imshow(D, aspect="auto", cmap="bwr", interpolation='none', vmin=-vm, vmax=vm)
-    #     fig.show()
-    #     fig.savefig(f"D_{covar}.pdf")
-    #     plt.close()        
-
-    #     print(covar, col_inds, np.allclose(dm.X[:, col_inds], matX[:, col_inds]))
-    
     assert np.allclose(dm.X, matX)
 
     # %% Fit GLM
-    # glm = PoissonRegressor(alpha=1).fit(dm.X, y)
-    glm = PoissonRegressor(alpha=10, solver="newton-cholesky").fit(dm.X, y)
-    print(glm.coef_)
-    weights = dm.combine_weights(glm.coef_)
+    n, m = dm.X.shape
+    X = np.column_stack((np.ones(n), dm.X))
+    # w, sd, H = get_posterior_weights(X, y, prior.ridge(1, m, True))
+    w, sd, H = get_posterior_weights(X, y, prior.ridge(5, m + 1))
+    
+    # intercept = w[0]
+    w = w[1:]
+    print(w)
+    weights = dm.combine_weights(w)
     
     n_covars = len(dm.covariates)
     fig, axs = plt.subplots(n_covars, 1, figsize=(12, 2 * n_covars))
@@ -156,7 +150,7 @@ def main():
         ax.plot(wk['tr'], wk['data'])
         ax.set_title(lk)
     fig.tight_layout()
-    fig.savefig("glm_weights.pdf")
+    fig.savefig(this_dir / "glm_weights.pdf")
     plt.close()
 
 
