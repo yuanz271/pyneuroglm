@@ -270,12 +270,12 @@ class DesignMatrix:
         :returns: Design matrix of shape (total_bins, edim).
         :rtype: numpy.ndarray
         """
-        expt = self.experiment
+        binfun = self.experiment.binfun
         trials = self._filter_trials(trial_indices)
 
         X = []
         for trial in trials:
-            n_bins = expt.binfun(trial.duration, True)
+            n_bins = binfun(trial.duration, True)
             Xt = []
             for covar in self.covariates.values():
                 if covar.condition is not None and not covar.condition(
@@ -291,7 +291,7 @@ class DesignMatrix:
                     Xc = stim
                 else:
                     Xc = conv_basis(
-                        stim, covar.basis, ceil(covar.offset / expt.binsize)
+                        stim, covar.basis, ceil(covar.offset / self.experiment.binsize)
                     )
                 Xt.append(Xc)
             Xt = np.column_stack(Xt)
@@ -336,7 +336,7 @@ class DesignMatrix:
             basis = covar.basis
             
             if basis is None:
-                tr = (np.arange(len(w)) + covar.offset) * binsize
+                tr = np.arange(len(w)) * binsize + covar.offset
                 wout = w
             else:
                 # combine weights and basis
@@ -351,7 +351,7 @@ class DesignMatrix:
                 else:
                     tr = basis.tr
 
-                tr = np.tile((tr[:, None] + covar.offset) * binsize, (1, sdim))
+                tr = np.tile(tr[:, None] * binsize + covar.offset, (1, sdim))
 
             return {"label": covar.label, "tr": tr, "data": wout}
 
