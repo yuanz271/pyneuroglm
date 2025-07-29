@@ -1,5 +1,4 @@
 from math import ceil
-from typing import Any
 import warnings
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -49,7 +48,7 @@ class DesignMatrix:
         """
         return sum((covar.edim for covar in self.covariates.values()))
 
-    def add_constant(self, bias=True):
+    def prepend_constant(self, bias=True):
         """
         Add a constant (bias) column to the design matrix.
 
@@ -63,7 +62,7 @@ class DesignMatrix:
         label,
         description,
         handler,
-        basis,
+        basis=None,
         offset=0,
         condition: Callable | None = None,
     ):
@@ -85,6 +84,19 @@ class DesignMatrix:
         """
         self.covariates[label] = Covariate(
             self, label, description, handler, basis, offset, condition
+        )
+
+    def add_covariate_constant(self, label, stim_label=None, description=None, **kwargs):
+        binfun = self.experiment.binfun
+        if stim_label is None:
+            stim_label = label
+
+        self.covariates[label] = Covariate(
+            self,
+            label,
+            description,
+            constant_stim(label, binfun),
+            **kwargs,
         )
 
     def add_covariate_timing(self, label, stim_label=None, description=None, **kwargs):
@@ -179,30 +191,6 @@ class DesignMatrix:
         :type description: str or None
         """
         binfun = self.experiment.binfun
-        # if value_label is None:
-            # covar = Covariate(
-            #     self,
-            #     label,
-            #     description,
-            #     lambda trial: boxcar_stim(
-            #         binfun(trial[on_label]),
-            #         binfun(trial[off_label]),
-            #         binfun(trial.duration, True),
-            #     ),
-            # )
-        # else:
-        #     covar = Covariate(
-        #         self,
-        #         label,
-        #         description,
-        #         lambda trial: boxcar_stim(
-        #             binfun(trial[on_label]),
-        #             binfun(trial[off_label]),
-        #             binfun(trial.duration, True),
-        #             trial[value_label],
-        #         ),
-        #     )
-
         covar = Covariate(
             self,
             label,
@@ -285,10 +273,10 @@ class DesignMatrix:
         expt = self.experiment
         trials = self._filter_trials(trial_indices)
 
-        dm = []
+        X = []
         for trial in trials:
             n_bins = expt.binfun(trial.duration, True)
-            dmt = []
+            Xt = []
             for covar in self.covariates.values():
                 if covar.condition is not None and not covar.condition(
                     trial
@@ -300,21 +288,21 @@ class DesignMatrix:
                     stim = np.expand_dims(stim, -1)  # column vector if 1D
 
                 if covar.basis is None:
-                    dmc = stim
+                    Xc = stim
                 else:
-                    dmc = conv_basis(
+                    Xc = conv_basis(
                         stim, covar.basis, ceil(covar.offset / expt.binsize)
                     )
-                dmt.append(dmc)
-            dmt = np.concatenate(dmt, axis=1)
-            assert dmt.shape == (n_bins, self.edim)
-            if not np.all(np.isfinite(dmt)):
+                Xt.append(Xc)
+            Xt = np.column_stack(Xt)
+            assert Xt.shape == (n_bins, self.edim)
+            if not np.all(np.isfinite(Xt)):
                 warnings.warn("Design matrix contains NaN or Inf")
             if self.bias:
-                dmt = np.column_stack([np.ones(dmt.shape[0]), dmt])
-            dm.append(dmt)
+                Xt = np.column_stack([np.ones(Xt.shape[0]), Xt])
+            X.append(Xt)
 
-        self._X = np.concatenate(dm, axis=0)
+        self._X = np.vstack(X)
 
         return self._X
 
@@ -365,7 +353,7 @@ class DesignMatrix:
 
                 tr = np.tile((tr[:, None] + covar.offset) * binsize, (1, sdim))
 
-            return dict(label=covar.label, tr=tr, data=wout)
+            return {"label": covar.label, "tr": tr, "data": wout}
 
         w_dict = {covar.label: covar_weight(covar, wk) for covar, wk in zip(self.covariates.values(), ws)}
         
@@ -502,3 +490,7 @@ def raw_stim(label):
     :rtype: Callable
     """
     return lambda t: t[label]
+
+
+def constant_stim(label, binfun):
+    return lambda t: boxcar_stim(0, binfun(t.duration, True), binfun(t.duration, True), t[label])
