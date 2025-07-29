@@ -200,7 +200,7 @@ def delta_stim(bt: ArrayLike, n_bins: int, v: NDArray | None = None) -> NDArray:
     return stim.toarray()
 
 
-def boxcar_stim(start_bin: int, end_bin: int, n_bins: int, v: float = 1.0) -> NDArray:
+def boxcar_stim(start_bin: int, end_bin: int, n_bins: int, v: ArrayLike = 1.0) -> NDArray:
     """
     Create a boxcar (rectangular) stimulus vector with constant value over a specified interval.
 
@@ -208,16 +208,26 @@ def boxcar_stim(start_bin: int, end_bin: int, n_bins: int, v: float = 1.0) -> ND
     :type start_bin: int
     :param end_bin: End index of the boxcar (exclusive).
     :type end_bin: int
-    :param nbin: Total number of time bins.
+    :param n_bins: Total number of time bins.
     :type n_bins: int
     :param v: Value to assign within the boxcar interval (default 1.0).
-    :type v: float
-    :returns: Stimulus array of shape (nbin, 1) with value v in [start_bin:end_bin], zeros elsewhere.
+    :type v: ArrayLike
+    :returns: Stimulus array of shape (n_bins, dv) with value v in [start_bin:end_bin], zeros elsewhere.
     :rtype: numpy.ndarray
     """
-    x = np.zeros((n_bins, 1))
+    if isinstance(v, np.ndarray):
+        if v.ndim > 1:
+            raise ValueError("v must be a 1D array or scalar")
+        else:
+            d = v.shape[0]
+    elif isinstance(v, (int, float)):
+        d = 1
+    else:
+        raise TypeError("v must be a scalar or 1D Numpy array")
+    # print(f"{v=}")
+    x = np.zeros((n_bins, d))
     x[start_bin:end_bin, :] = v  # NOTE: neuroGLM effectively uses the right bin edge, but we use the left bin edge.
-    
+    # print(f"{x=}")
     return x
 
 
