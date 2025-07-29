@@ -3,16 +3,16 @@ import warnings
 
 import numpy as np
 from scipy.optimize import minimize
-from . import nonlinearity, negloglik, prior, optim
+from . import nonlinearity, likelihood, prior, optim
 
 
-def poisson_neg_log_posterior(w, X, y, Cinv, nlfun, inds):
-    L, dL, ddL = negloglik.poisson(w, X, y, nlfun, inds)
+def poisson_neglogpost(w, X, y, Cinv, nlfun, inds):
+    L, dL, ddL = likelihood.poisson_negloglik(w, X, y, nlfun, inds)
     p, dp, ddp = prior.gaussian_zero_mean_inv(w, Cinv)
     return L + p, dL + dp, ddL + ddp
 
 
-def bernoulli_neg_log_posterior(w, X, y, Cinv, inds):
+def bernoulli_neglogpost(w, X, y, Cinv, inds):
     raise NotImplementedError
 
 
@@ -20,7 +20,7 @@ def get_posterior_function(dist) -> Callable:
     match dist:
         case "poisson":
             nlfun = nonlinearity.exp
-            return lambda w, X, y, Cinv, inds: poisson_neg_log_posterior(
+            return lambda w, X, y, Cinv, inds: poisson_neglogpost(
                 w, X, y, Cinv, nlfun, inds
             )
         case _:
@@ -35,7 +35,7 @@ def get_likelihood_function(dist, **kwargs):
     match dist:
         case "poisson":
             nlfun = nonlinearity.exp
-            return lambda w, X, y, Cinv, inds: negloglik.poisson(w, X, y, nlfun, inds)
+            return lambda w, X, y, Cinv, inds: likelihood.poisson_negloglik(w, X, y, nlfun, inds)
 
 
 def initialize_lstsq(X, y, Cinv, cvfolds=None):
@@ -47,9 +47,22 @@ def initialize_lstsq(X, y, Cinv, cvfolds=None):
     return w0
 
 
-def get_posterior_weights(X, y, Cinv, dist="poisson", cvfolds=None):
+def initialize_zero(X, y, Cinv, cvfolds=None, bias=True, nlin=None):
+    """Initialize weights using ridge regression"""
+    w = np.zeros(X.shape[1])
+    if bias:
+        w0 = np.mean(y)
+        if nlin is not None:
+            w0 = nlin(w0)
+        w[0] = w0
+    return w
+
+
+def get_posterior_weights(X, y, Cinv, dist="poisson", cvfolds=None, initialize=initialize_zero, init_kwargs=None):
     if cvfolds is None:
-        w0 = initialize_lstsq(X, y, Cinv)
+        if init_kwargs is None:
+            init_kwargs = {}
+        w0 = initialize(X, y, Cinv, cvfolds, **init_kwargs)
         obj = get_posterior_function(dist)
         obj = optim.Objective(obj)  # pyright: ignore[reportArgumentType]
         opt = minimize(
@@ -64,7 +77,10 @@ def get_posterior_weights(X, y, Cinv, dist="poisson", cvfolds=None):
             warnings.warn("Optimization not succeed")
         w = opt.x
         H = opt.hess
-        invH = np.linalg.inv(H)
+        if hasattr(opt, 'hess_inv'):
+            invH = opt.hess_inv
+        else:
+            invH = np.linalg.inv(H)
         sd = np.sqrt(np.diag(invH))
     else:
         raise NotImplementedError
