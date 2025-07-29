@@ -82,7 +82,7 @@ def make_smooth_temporal_basis(
             mask = np.logical_and(
                 ttb[:, k] > ceil(width * k), ttb[:, k] <= ceil(width * (k + 1))
             )
-            BBstm[mask, k] = 1.0 / sum(mask)
+            BBstm[mask, k] = 1.0 / np.count_nonzero(mask)
     else:
         raise ValueError(f"Unknown basis shape: {shape}")
 
