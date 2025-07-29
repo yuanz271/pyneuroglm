@@ -19,18 +19,18 @@ def ridge(rho, nx, add_constant=False):
 def gaussian_zero_mean_inv(w, Cinv):
     """
     Evaluate negative log gaussian prior with mean zero and covariance Cinv
-    [p, dp, negCinv] = gaussian_zero_mean_inv(w, Cinv)
+    [p, dp, ddp] = gaussian_zero_mean_inv(w, Cinv)
 
     Evaluate a Gaussian negative log-prior at parameter vector w.
 
     Inputs:
-    prvec [n x 1] - parameter vector (last element can be DC)
-        C [m x m] - gaussian inverse covariance
+        w [n] - parameter vector (last element can be DC)
+        Cinv [m x m] - gaussian inverse covariance
 
     Outputs:
         p [1 x 1] - log-prior
         dp [n x 1] - grad
-    negCinv [n x n] - negative inverse covariance matrix (Hessian)
+        ddp [n x n] - Hessian
     """
     # check intercept
     if len(w) == Cinv.shape[0] + 1:
@@ -38,5 +38,4 @@ def gaussian_zero_mean_inv(w, Cinv):
 
     dp = Cinv @ w
     p = 0.5 * np.inner(w, dp)
-    negCinv = Cinv
-    return p, dp, negCinv
+    return p, dp, Cinv
