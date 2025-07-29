@@ -97,7 +97,7 @@ class Experiment:
         :rtype: int, numpy.ndarray, or scalar
         """
         t = np.asarray(t)
-        assert np.all(t > 0)
+        assert np.all(t >= 0)
 
         idx = t / self.binsize
         idx = np.maximum(np.ceil(idx), 1)
@@ -147,7 +147,7 @@ class Experiment:
         """
         self.variables[label] = Variable(label, description, "spike")
 
-    def register_value(self, label, description, timing=None):
+    def register_value(self, label, description, ndim=1, timing=None):
         """
         Register a value variable.
 
@@ -158,7 +158,7 @@ class Experiment:
         :param timing: Timing value for the variable (optional).
         :type timing: float or None
         """
-        v = Variable(label, description, 'value')
+        v = Variable(label, description, 'value', ndim)
         v.timing = timing
         self.variables[label] = v
 
