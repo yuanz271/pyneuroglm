@@ -1,40 +1,67 @@
 import numpy as np
 
 
-def log_evidence(param, hyperparam, mstruct):
+def log_evidence(param, hyperparam, loglik, llargs, logprior, lpargs):
     """
-    Compute the log-evidence under a GLM using the Laplace approximation.
+    Compute the log-evidence under a Generalized Linear Model (GLM) using the Laplace approximation.
 
-    :param wts: Regression weights (MAP estimate).
-    :type wts: numpy.ndarray, shape (m,)
-    :param hprs: Hyperparameters for the prior.
-    :type hprs: numpy.ndarray, shape (p,)
-    :param mstruct: Model structure object with the following attributes:
-        - neglogli (callable): Returns (L, grad, Hessian) = negative log-likelihood and its derivatives at wts.
-        - logprior (callable): Returns (p, dp, negCinv, logdetCinv) = log-prior, gradient, negative inverse covariance, and log-det of C⁻¹.
-        - liargs (list or tuple): Extra args for neglogli.
-        - priargs (list or tuple): Extra args for logprior.
-    :type mstruct: object
+    Parameters
+    ----------
+    param : numpy.ndarray of shape (m,)
+        Regression weights (MAP estimate).
+    hyperparam : numpy.ndarray of shape (p,)
+        Hyperparameters for the prior.
+    loglik : callable
+        Function that returns ``(L, dL, ddL)``, the log-likelihood and its first and second derivatives at the given parameters.
+    llargs : tuple
+        Extra arguments to pass to the log-likelihood function.
+    logprior : callable
+        Function that returns ``(P, dP, ddP)``, the log-prior and its first and second derivatives at the given parameters.
+    lpargs : tuple
+        Extra arguments to pass to the log-prior function.
 
-    :returns: logEv (float): Log-evidence via Laplace's method at the MAP weights.
-    :rtype: float
+    Returns
+    -------
+    float
+        Log-evidence computed via Laplace's method at the MAP weights.
 
-    :raises ValueError: If the posterior Hessian is not positive definite.
+    Raises
+    ------
+    ValueError
+        If the posterior Hessian is not positive definite.
     """
-    # Evaluate negative log-likelihood and its Hessian
-    L, _, ddL = mstruct.neglogli(param, *mstruct.liargs)
+    # Evaluate log-likelihood and its Hessian
+    L, _, ddL = loglik(param, *llargs)
 
-    # Evaluate log-prior, its negative inverse covariance, and its log-det
-    p, _, negCinv, logdetCinv = mstruct.logprior(param, hyperparam, *mstruct.priargs)
+    # Evaluate log-prior and its Hessian
+    P, _, ddP = logprior(param, hyperparam, *lpargs)
 
-    # Posterior Hessian = (negative log-likelihood Hessian) − (neg inverse prior)
-    H_post = ddL - negCinv
+    # logjoint = loglik + logprior
+    # logdet = - log|Hessian logjoint|
+    # logZ = logjoint + 0.5 logdet
 
-    # Compute log-determinant of the posterior Hessian
-    sign, logdet_H = np.linalg.slogdet(H_post)
+    # logZ = logp(y|x, b) + logp(b) + 0.5 * logdetS
+    # Sinv = - (dd logp(y|x, b) + dd logp(b))
+    # logZ = L + P + 0.5 * log|S|
+
+    Sinv = ddL + ddP  # -Hession joint
+    sign, logdetSinv = np.linalg.slogdet(Sinv)
+
     if sign <= 0:
         raise ValueError("Posterior Hessian must be positive definite.")
 
     # Laplace log-evidence
-    logEv = -L + p + 0.5 * logdetCinv - 0.5 * logdet_H
-    return logEv
+    logZ = L + P - 0.5 * logdetSinv  # log|S| = -log|invS|
+    return logZ
+
+
+# def hessian_log_posterior_mvnorm(beta, X, y, Sigma_prior_inv):
+#     eta = X @ beta
+#     lambda_ = np.exp(eta)
+#     W = np.diag(lambda_)
+#     H = X.T @ W @ X + Sigma_prior_inv
+#     return H
+
+
+# ddL = -X.T @ diag(lambda) @ X
+# ddp = -Cinv

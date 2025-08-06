@@ -13,20 +13,22 @@ class Basis:
     """
     Data structure representing a basis for modeling functions.
 
-    :param name: Name of the basis (e.g., 'raised cosine', 'boxcar').
-    :type name: str
-    :param func: Constructor function used to create the basis.
-    :type func: Callable
-    :param kwargs: Dictionary of arguments used to construct the basis.
-    :type kwargs: dict
-    :param B: Basis matrix of shape (n_bins, n_bases).
-    :type B: numpy.ndarray
-    :param edim: Effective dimension (number of basis vectors).
-    :type edim: int
-    :param tr: Time lattice or bin centers (1D array).
-    :type tr: numpy.ndarray
-    :param centers: Centers of each basis function (1D array).
-    :type centers: numpy.ndarray
+    Parameters
+    ----------
+    name : str
+        Name of the basis (e.g., 'raised cosine', 'boxcar').
+    func : Callable
+        Constructor function used to create the basis.
+    kwargs : dict
+        Dictionary of arguments used to construct the basis.
+    B : numpy.ndarray
+        Basis matrix of shape (n_bins, n_bases).
+    edim : int
+        Effective dimension (number of basis vectors).
+    tr : numpy.ndarray
+        Time lattice or bin centers (1D array).
+    centers : numpy.ndarray
+        Centers of each basis function (1D array).
     """
 
     name: str
@@ -47,16 +49,26 @@ def make_smooth_temporal_basis(
     """
     Construct a smooth temporal basis matrix using either raised cosine or boxcar functions.
 
-    :param shape: Type of basis function to use. Must be either 'raised cosine' or 'boxcar'.
-    :type shape: str
-    :param duration: Total time to be covered by the basis (in the same units expected by binfun).
-    :type duration: float
-    :param n_bases: Number of basis functions to generate.
-    :type n_bases: int
-    :param binfun: Function that converts duration to number of bins. Should accept (duration, True) and return an integer.
-    :type binfun: Callable
-    :returns: A Basis object containing the basis matrix (B), centers, and related metadata.
-    :rtype: Basis
+    Parameters
+    ----------
+    shape : str
+        Type of basis function to use. Must be either 'raised cosine' or 'boxcar'.
+    duration : float
+        Total time to be covered by the basis (in the same units expected by binfun).
+    n_bases : int
+        Number of basis functions to generate.
+    binfun : Callable[[float, bool], int]
+        Function that converts duration to number of bins. Should accept (duration, True) and return an integer.
+
+    Returns
+    -------
+    Basis
+        A Basis object containing the basis matrix (B), centers, and related metadata.
+
+    Raises
+    ------
+    ValueError
+        If the shape is not recognized.
     """
 
     def rcos(x, period):
@@ -105,16 +117,21 @@ def temporal_bases(
     """
     Apply a temporal basis to input data, optionally masking basis functions and adding a DC component.
 
-    :param x: Input data array of shape (T, dx), where T is the number of time bins and dx is the number of covariates.
-    :type x: numpy.ndarray
-    :param B: Basis matrix of shape (TB, M), where TB is the number of basis time bins and M is the number of basis functions.
-    :type B: numpy.ndarray
-    :param mask: Optional boolean mask of shape (dx, M) indicating which basis functions to use for each covariate. If None, all are used.
-    :type mask: numpy.ndarray or None
-    :param addDC: If True, adds a DC (constant) column to the output.
-    :type addDC: bool
-    :returns: Output array of shape (T, sum(mask) + int(addDC)), where sum(mask) is the total number of active basis functions.
-    :rtype: numpy.ndarray
+    Parameters
+    ----------
+    x : array-like of shape (T, dx)
+        Input data array, where T is the number of time bins and dx is the number of covariates.
+    B : array-like of shape (TB, M)
+        Basis matrix, where TB is the number of basis time bins and M is the number of basis functions.
+    mask : numpy.ndarray of bool, shape (dx, M), optional
+        Boolean mask indicating which basis functions to use for each covariate. If None, all are used.
+    addDC : bool, default=False
+        If True, adds a DC (constant) column to the output.
+
+    Returns
+    -------
+    numpy.ndarray
+        Output array of shape (T, sum(mask) + int(addDC)), where sum(mask) is the total number of active basis functions.
     """
     x = np.asarray(x)
     B = np.asarray(B)
@@ -125,7 +142,7 @@ def temporal_bases(
     if mask is None:
         mask = np.ones((dx, M), dtype=bool)
 
-    sI = np.sum(mask, 1)  # bases oer covariate
+    sI = np.sum(mask, 1)  # bases per covariate
     BX = np.zeros((T, np.sum(sI) + addDC))
     sI = np.cumsum(sI)
     col = 0
@@ -143,14 +160,19 @@ def conv_basis(x: ArrayLike, basis: Basis, offset: int = 0) -> NDArray:
     """
     Convolve input data with a temporal basis, with optional causal or anti-causal offset.
 
-    :param x: Input data array of shape (T, dx), where T is the number of time bins and dx is the number of covariates.
-    :type x: array-like
-    :param basis: Basis object containing the basis matrix to convolve with.
-    :type basis: Basis
-    :param offset: Number of bins to offset the convolution. Positive for causal, negative for anti-causal, zero for centered.
-    :type offset: int
-    :returns: Output array of shape (T, n_bases), where n_bases is the number of basis functions in the basis.
-    :rtype: numpy.ndarray
+    Parameters
+    ----------
+    x : array-like of shape (T, dx)
+        Input data array, where T is the number of time bins and dx is the number of covariates.
+    basis : Basis
+        Basis object containing the basis matrix to convolve with.
+    offset : int, default=0
+        Number of bins to offset the convolution. Positive for causal, negative for anti-causal, zero for centered.
+
+    Returns
+    -------
+    numpy.ndarray
+        Output array of shape (T, n_bases), where n_bases is the number of basis functions in the basis.
     """
     x = np.asarray(x)
 
@@ -177,14 +199,19 @@ def delta_stim(bt: ArrayLike, n_bins: int, v: NDArray | None = None) -> NDArray:
     """
     Create a sparse stimulus vector with delta (impulse) events at specified time bins.
 
-    :param bt: Array of time bin indices where events occur.
-    :type bt: array-like
-    :param n_bins: Total number of time bins.
-    :type n_bins: int
-    :param v: Optional array of values for each event (default is 1 for all).
-    :type v: numpy.ndarray or None
-    :returns: Stimulus array of shape (n_bins, 1) with impulses at specified bins.
-    :rtype: numpy.ndarray
+    Parameters
+    ----------
+    bt : array-like
+        Array of time bin indices where events occur.
+    n_bins : int
+        Total number of time bins.
+    v : numpy.ndarray or None, optional
+        Array of values for each event (default is 1 for all).
+
+    Returns
+    -------
+    numpy.ndarray
+        Stimulus array of shape (n_bins, 1) with impulses at specified bins.
     """
     bt = np.asarray(bt)
     bidx = bt < n_bins
@@ -204,16 +231,28 @@ def boxcar_stim(start_bin: int, end_bin: int, n_bins: int, v: ArrayLike = 1.0) -
     """
     Create a boxcar (rectangular) stimulus vector with constant value over a specified interval.
 
-    :param start_bin: Start index of the boxcar (inclusive).
-    :type start_bin: int
-    :param end_bin: End index of the boxcar (exclusive).
-    :type end_bin: int
-    :param n_bins: Total number of time bins.
-    :type n_bins: int
-    :param v: Value to assign within the boxcar interval (default 1.0).
-    :type v: ArrayLike
-    :returns: Stimulus array of shape (n_bins, dv) with value v in [start_bin:end_bin], zeros elsewhere.
-    :rtype: numpy.ndarray
+    Parameters
+    ----------
+    start_bin : int
+        Start index of the boxcar (inclusive).
+    end_bin : int
+        End index of the boxcar (exclusive).
+    n_bins : int
+        Total number of time bins.
+    v : array-like or float, default=1.0
+        Value to assign within the boxcar interval.
+
+    Returns
+    -------
+    numpy.ndarray
+        Stimulus array of shape (n_bins, dv) with value v in [start_bin:end_bin], zeros elsewhere.
+
+    Raises
+    ------
+    ValueError
+        If v is a multi-dimensional array.
+    TypeError
+        If v is not a scalar or 1D numpy array.
     """
     if isinstance(v, np.ndarray):
         if v.ndim > 1:
@@ -232,6 +271,23 @@ def boxcar_stim(start_bin: int, end_bin: int, n_bins: int, v: ArrayLike = 1.0) -
 
 
 def raised_cos(x: ArrayLike, c: ArrayLike, dc: float) -> NDArray:
+    """
+    Compute a raised cosine basis function.
+
+    Parameters
+    ----------
+    x : array-like
+        Input values.
+    c : array-like
+        Centers of the raised cosine functions.
+    dc : float
+        Width parameter for the raised cosine.
+
+    Returns
+    -------
+    numpy.ndarray
+        Evaluated raised cosine basis functions.
+    """
     x = np.asarray(x)
     c = np.asarray(c)
     d = 0.5 * (x - c) * np.pi / dc
@@ -245,16 +301,26 @@ def make_nonlinear_raised_cos(
     """
     Create a nonlinearly stretched raised-cosine temporal basis.
 
-    :param n_bases: Number of basis vectors to generate.
-    :type n_bases: int
-    :param binsize_in_ms: Time bin size in milliseconds.
-    :type binsize_in_ms: float
-    :param end_points_in_ms: Sequence of two floats, [first_peak, last_peak], specifying the centers of the first and last basis functions in milliseconds.
-    :type end_points_in_ms: array-like
-    :param nl_offset_in_ms: Offset for nonlinear stretching in milliseconds (must be > 0).
-    :type nl_offset_in_ms: float
-    :returns: A Basis object containing the nonlinearly stretched raised-cosine basis matrix and related metadata.
-    :rtype: Basis
+    Parameters
+    ----------
+    n_bases : int
+        Number of basis vectors to generate.
+    binsize_in_ms : float
+        Time bin size in milliseconds.
+    end_points_in_ms : array-like
+        Sequence of two floats, [first_peak, last_peak], specifying the centers of the first and last basis functions in milliseconds.
+    nl_offset_in_ms : float
+        Offset for nonlinear stretching in milliseconds (must be > 0).
+
+    Returns
+    -------
+    Basis
+        A Basis object containing the nonlinearly stretched raised-cosine basis matrix and related metadata.
+
+    Raises
+    ------
+    ValueError
+        If nl_offset_in_ms is not greater than 0.
     """
     if nl_offset_in_ms <= 0:
         raise ValueError("nl_offset must be greater than 0")

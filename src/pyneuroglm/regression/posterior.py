@@ -7,16 +7,69 @@ from . import nonlinearity, likelihood, prior, optim
 
 
 def poisson_neglogpost(w, X, y, Cinv, nlfun, inds):
+    """
+    Compute the negative log-posterior, gradient, and Hessian for a Poisson GLM with Gaussian prior.
+
+    Parameters
+    ----------
+    w : array-like
+        Regression weights.
+    X : array-like
+        Design matrix.
+    y : array-like
+        Observed counts.
+    Cinv : array-like
+        Inverse covariance matrix for the Gaussian prior.
+    nlfun : callable
+        Nonlinearity function.
+    inds : array-like
+        Indices to subset the data.
+
+    Returns
+    -------
+    L : float
+        Negative log-posterior.
+    dL : numpy.ndarray
+        Gradient of the negative log-posterior.
+    ddL : numpy.ndarray
+        Hessian of the negative log-posterior.
+    """
     L, dL, ddL = likelihood.poisson_negloglik(w, X, y, nlfun, inds)
     p, dp, ddp = prior.gaussian_zero_mean_inv(w, Cinv)
     return L + p, dL + dp, ddL + ddp
 
 
 def bernoulli_neglogpost(w, X, y, Cinv, inds):
+    """
+    Placeholder for Bernoulli negative log-posterior.
+
+    Raises
+    ------
+    NotImplementedError
+        This function is not implemented.
+    """
     raise NotImplementedError
 
 
 def get_posterior_function(dist) -> Callable:
+    """
+    Get a posterior function for the specified distribution.
+
+    Parameters
+    ----------
+    dist : str
+        Distribution name ("poisson", ...).
+
+    Returns
+    -------
+    callable
+        Posterior function for the specified distribution.
+
+    Raises
+    ------
+    NotImplementedError
+        If the distribution is not supported.
+    """
     match dist:
         case "poisson":
             nlfun = nonlinearity.exp
@@ -32,6 +85,21 @@ def get_posterior_function(dist) -> Callable:
 
 
 def get_likelihood_function(dist, **kwargs):
+    """
+    Get a likelihood function for the specified distribution.
+
+    Parameters
+    ----------
+    dist : str
+        Distribution name ("poisson", ...).
+    **kwargs
+        Additional keyword arguments.
+
+    Returns
+    -------
+    callable
+        Likelihood function for the specified distribution.
+    """
     match dist:
         case "poisson":
             nlfun = nonlinearity.exp
@@ -39,7 +107,30 @@ def get_likelihood_function(dist, **kwargs):
 
 
 def initialize_lstsq(X, y, Cinv, cvfolds=None):
-    """Initialize weights using least squares"""
+    """
+    Initialize weights using least squares.
+
+    Parameters
+    ----------
+    X : array-like
+        Design matrix.
+    y : array-like
+        Response vector.
+    Cinv : array-like
+        Inverse covariance matrix for the prior.
+    cvfolds : any, optional
+        Cross-validation folds (not implemented).
+
+    Returns
+    -------
+    numpy.ndarray
+        Initial weights.
+
+    Raises
+    ------
+    NotImplementedError
+        If cross-validation is requested.
+    """
     if cvfolds is None:
         w0 = np.linalg.lstsq(X.T @ X + Cinv, X.T @ y)[0]
     else:
@@ -48,7 +139,29 @@ def initialize_lstsq(X, y, Cinv, cvfolds=None):
 
 
 def initialize_zero(X, y, Cinv, cvfolds=None, bias=True, nlin=None):
-    """Initialize weights using ridge regression"""
+    """
+    Initialize weights using zeros or mean for bias.
+
+    Parameters
+    ----------
+    X : array-like
+        Design matrix.
+    y : array-like
+        Response vector.
+    Cinv : array-like
+        Inverse covariance matrix for the prior.
+    cvfolds : any, optional
+        Cross-validation folds (not implemented).
+    bias : bool, optional
+        If True, initialize the first weight as the mean of y.
+    nlin : callable or None, optional
+        Nonlinearity to apply to the bias.
+
+    Returns
+    -------
+    numpy.ndarray
+        Initial weights.
+    """
     w = np.zeros(X.shape[1])
     if bias:
         w0 = np.mean(y)
@@ -59,6 +172,40 @@ def initialize_zero(X, y, Cinv, cvfolds=None, bias=True, nlin=None):
 
 
 def get_posterior_weights(X, y, Cinv, dist="poisson", cvfolds=None, initialize=initialize_zero, init_kwargs=None):
+    """
+    Fit a GLM by maximizing the posterior and return weights, standard deviations, and Hessian.
+
+    Parameters
+    ----------
+    X : array-like
+        Design matrix.
+    y : array-like
+        Response vector.
+    Cinv : array-like
+        Inverse covariance matrix for the prior.
+    dist : str, optional
+        Distribution name ("poisson", ...).
+    cvfolds : any, optional
+        Cross-validation folds (not implemented).
+    initialize : callable, optional
+        Initialization function.
+    init_kwargs : dict or None, optional
+        Additional keyword arguments for initialization.
+
+    Returns
+    -------
+    w : numpy.ndarray
+        MAP weights.
+    sd : numpy.ndarray
+        Standard deviations of the weights.
+    H : numpy.ndarray
+        Hessian at the MAP weights.
+
+    Raises
+    ------
+    NotImplementedError
+        If cross-validation is requested.
+    """
     if cvfolds is None:
         if init_kwargs is None:
             init_kwargs = {}

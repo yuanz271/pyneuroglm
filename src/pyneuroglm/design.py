@@ -19,12 +19,16 @@ class DesignMatrix:
     """
     GLM design matrix builder for experiments.
 
-    :param experiment: The Experiment object containing trial data and binning functions.
-    :type experiment: Experiment
-    :param covariates: Dictionary of covariate label to Covariate objects.
-    :type covariates: dict
-    :param bias: Whether to include a bias (constant) column in the design matrix.
-    :type bias: bool
+    Parameters
+    ----------
+    experiment : Experiment
+        The Experiment object containing trial data and binning functions.
+    covariates : dict, optional
+        Dictionary of covariate label to Covariate objects.
+    bias : bool, optional
+        Whether to include a bias (constant) column in the design matrix.
+    zstats : dict, optional
+        Dictionary of z-scoring statistics.
     """
     experiment: Experiment
     covariates: dict = field(default_factory=dict)
@@ -34,6 +38,19 @@ class DesignMatrix:
     
     @property
     def X(self) -> NDArray:
+        """
+        The compiled design matrix.
+
+        Returns
+        -------
+        numpy.ndarray
+            The compiled design matrix.
+
+        Raises
+        ------
+        RuntimeError
+            If the design matrix has not been compiled.
+        """
         if self._X is None:
             raise RuntimeError("Design matrix has not been compiled")
         return self._X
@@ -43,8 +60,10 @@ class DesignMatrix:
         """
         Total effective dimension (number of columns) of the design matrix.
 
-        :returns: Sum of effective dimensions of all covariates.
-        :rtype: int
+        Returns
+        -------
+        int
+            Sum of effective dimensions of all covariates.
         """
         return sum((covar.edim for covar in self.covariates.values()))
 
@@ -52,8 +71,10 @@ class DesignMatrix:
         """
         Add a constant (bias) column to the design matrix.
 
-        :param bias: Whether to include the bias column.
-        :type bias: bool
+        Parameters
+        ----------
+        bias : bool, optional
+            Whether to include the bias column. Default is True.
         """
         self.bias = bias
 
@@ -69,24 +90,40 @@ class DesignMatrix:
         """
         Add a covariate to the design.
 
-        :param label: Covariate label.
-        :type label: str
-        :param description: Description of the covariate.
-        :type description: str
-        :param handler: Function to generate the stimulus array for each trial.
-        :type handler: Callable
-        :param basis: Basis object for the covariate, or None for raw.
-        :type basis: Basis or None
-        :param offset: Offset to apply to the covariate (in time units).
-        :type offset: float
-        :param condition: Optional function to filter trials for this covariate.
-        :type condition: Callable or None
+        Parameters
+        ----------
+        label : str
+            Covariate label.
+        description : str
+            Description of the covariate.
+        handler : Callable
+            Function to generate the stimulus array for each trial.
+        basis : Basis or None, optional
+            Basis object for the covariate, or None for raw.
+        offset : float, optional
+            Offset to apply to the covariate (in time units).
+        condition : Callable or None, optional
+            Optional function to filter trials for this covariate.
         """
         self.covariates[label] = Covariate(
             self, label, description, handler, basis, offset, condition
         )
 
     def add_covariate_constant(self, label, stim_label=None, description=None, **kwargs):
+        """
+        Add a constant covariate.
+
+        Parameters
+        ----------
+        label : str
+            Covariate label.
+        stim_label : str or None, optional
+            Label in trial dict for the constant value (defaults to label).
+        description : str or None, optional
+            Description of the covariate.
+        **kwargs
+            Additional arguments for Covariate.
+        """
         binfun = self.experiment.binfun
         if stim_label is None:
             stim_label = label
@@ -103,13 +140,16 @@ class DesignMatrix:
         """
         Add a covariate based on event timing (delta function).
 
-        :param label: Covariate label.
-        :type label: str
-        :param stim_label: Label in trial dict for event times (defaults to label).
-        :type stim_label: str or None
-        :param description: Description of the covariate.
-        :type description: str or None
-        :param kwargs: Additional arguments for Covariate.
+        Parameters
+        ----------
+        label : str
+            Covariate label.
+        stim_label : str or None, optional
+            Label in trial dict for event times (defaults to label).
+        description : str or None, optional
+            Description of the covariate.
+        **kwargs
+            Additional arguments for Covariate.
         """
         binfun = self.experiment.binfun
         if stim_label is None:
@@ -129,14 +169,16 @@ class DesignMatrix:
         """
         Add a spike covariate with a default or provided basis.
 
-        :param label: Covariate label.
-        :type label: str
-        :param stim_label: Label in trial dict for spike times.
-        :type stim_label: str
-        :param description: Description of the covariate.
-        :type description: str or None
-        :param basis: Basis object for the spike covariate, or None for default.
-        :type basis: Basis or None
+        Parameters
+        ----------
+        label : str
+            Covariate label.
+        stim_label : str
+            Label in trial dict for spike times.
+        description : str or None, optional
+            Description of the covariate.
+        basis : Basis or None, optional
+            Basis object for the spike covariate, or None for default.
         """
         if basis is None:
             basis = make_nonlinear_raised_cos(
@@ -165,11 +207,14 @@ class DesignMatrix:
         """
         Add a raw (untransformed) covariate.
 
-        :param label: Covariate label.
-        :type label: str
-        :param description: Description of the covariate.
-        :type description: str or None
-        :param kwargs: Additional arguments for Covariate.
+        Parameters
+        ----------
+        label : str
+            Covariate label.
+        description : str or None, optional
+            Description of the covariate.
+        **kwargs
+            Additional arguments for Covariate.
         """
         self.covariates[label] = Covariate(
             self, label, description, raw_stim(label), **kwargs
@@ -181,14 +226,18 @@ class DesignMatrix:
         """
         Add a boxcar (rectangular) covariate.
 
-        :param label: Covariate label.
-        :type label: str
-        :param on_label: Label in trial dict for boxcar start.
-        :type on_label: str
-        :param off_label: Label in trial dict for boxcar end.
-        :type off_label: str
-        :param description: Description of the covariate.
-        :type description: str or None
+        Parameters
+        ----------
+        label : str
+            Covariate label.
+        on_label : str
+            Label in trial dict for boxcar start.
+        off_label : str
+            Label in trial dict for boxcar end.
+        description : str or None, optional
+            Description of the covariate.
+        **kwargs
+            Additional arguments for Covariate.
         """
         binfun = self.experiment.binfun
         covar = Covariate(
@@ -209,10 +258,15 @@ class DesignMatrix:
         """
         Internal helper to select trials by index.
 
-        :param trial_indices: List of trial indices or None for all trials.
-        :type trial_indices: list or None
-        :returns: List of trial dicts.
-        :rtype: list
+        Parameters
+        ----------
+        trial_indices : list or None
+            List of trial indices or None for all trials.
+
+        Returns
+        -------
+        list
+            List of trial dicts.
         """
         expt = self.experiment
         if trial_indices is not None:
@@ -225,12 +279,17 @@ class DesignMatrix:
         """
         Get concatenated response vector for a label across selected trials.
 
-        :param label: Trial dict key for the response.
-        :type label: str
-        :param trial_indices: List of trial indices or None for all trials.
-        :type trial_indices: list or None
-        :returns: Concatenated response array.
-        :rtype: numpy.ndarray
+        Parameters
+        ----------
+        label : str
+            Trial dict key for the response.
+        trial_indices : list or None, optional
+            List of trial indices or None for all trials.
+
+        Returns
+        -------
+        numpy.ndarray
+            Concatenated response array.
         """
         trials = self._filter_trials(trial_indices)
         return np.concatenate([trial[label] for trial in trials])
@@ -241,14 +300,19 @@ class DesignMatrix:
         """
         Get binned spike counts for a label across selected trials.
 
-        :param label: Trial dict key for spike times.
-        :type label: str
-        :param trial_indices: List of trial indices or None for all trials.
-        :type trial_indices: list or None
-        :param concat: Whether to concatenate results across trials.
-        :type concat: bool
-        :returns: Binned spike counts (concatenated array or list of arrays).
-        :rtype: numpy.ndarray or list
+        Parameters
+        ----------
+        label : str
+            Trial dict key for spike times.
+        trial_indices : list or None, optional
+            List of trial indices or None for all trials.
+        concat : bool, optional
+            Whether to concatenate results across trials.
+
+        Returns
+        -------
+        numpy.ndarray
+            Binned spike counts (concatenated array or list of arrays).
         """
         trials = self._filter_trials(trial_indices)
         expt = self.experiment
@@ -265,10 +329,15 @@ class DesignMatrix:
         """
         Compile the design matrix for selected trials.
 
-        :param trial_indices: List of trial indices or None for all trials.
-        :type trial_indices: list or None
-        :returns: Design matrix of shape (total_bins, edim).
-        :rtype: numpy.ndarray
+        Parameters
+        ----------
+        trial_indices : list or None, optional
+            List of trial indices or None for all trials.
+
+        Returns
+        -------
+        numpy.ndarray
+            Design matrix of shape (total_bins, edim).
         """
         binfun = self.experiment.binfun
         trials = self._filter_trials(trial_indices)
@@ -310,12 +379,15 @@ class DesignMatrix:
         """
         Split a weight vector into named fields for each covariate and combine with bases.
 
-        :param w: Weight vector or matrix.
-        :type w: numpy.ndarray
-        :param axis: Axis along which to split weights.
-        :type axis: int
-        :returns: Named tuple of weight arrays for each covariate.
-        :rtype: namedtuple
+        Parameters
+        ----------
+        w : numpy.ndarray
+            Weight vector or matrix.
+
+        Returns
+        -------
+        dict
+            Dictionary mapping covariate labels to weight arrays and metadata.
         """
         # TODO: constant column
         assert self.edim == len(w)
@@ -363,10 +435,15 @@ class DesignMatrix:
         """
         Get column indices in the design matrix for one or more covariates.
 
-        :param covar_labels: Covariate label or list of labels.
-        :type covar_labels: str or list of str
-        :returns: Array of column indices corresponding to the covariates.
-        :rtype: numpy.ndarray
+        Parameters
+        ----------
+        covar_labels : str or list of str
+            Covariate label or list of labels.
+
+        Returns
+        -------
+        numpy.ndarray
+            Array of column indices corresponding to the covariates.
         """
         if isinstance(covar_labels, str):
             covar_labels = [covar_labels]
@@ -385,6 +462,14 @@ class DesignMatrix:
         return col_indices
     
     def zscore_columns(self, column_indices=None):
+        """
+        Z-score specified columns of the design matrix.
+
+        Parameters
+        ----------
+        column_indices : array-like or None, optional
+            Indices of columns to z-score. If None, all columns are z-scored.
+        """
         X = self.X
 
         if column_indices is None:
@@ -407,24 +492,26 @@ class Covariate:
     """
     Covariate specification for a GLM design.
 
-    :param design: The parent Design object.
-    :type design: Design
-    :param label: Covariate label.
-    :type label: str
-    :param description: Description of the covariate.
-    :type description: str or None
-    :param handler: Function to generate the stimulus array for each trial.
-    :type handler: Callable
-    :param basis: Basis object for the covariate, or None for raw.
-    :type basis: Basis or None
-    :param offset: Offset to apply to the covariate (in time units).
-    :type offset: float
-    :param condition: Optional function to filter trials for this covariate.
-    :type condition: Callable or None
-    :param sdim: Stimulus dimension (set automatically).
-    :type sdim: int
-    :param edim: Effective dimension (set automatically).
-    :type edim: int
+    Parameters
+    ----------
+    design : DesignMatrix
+        The parent DesignMatrix object.
+    label : str
+        Covariate label.
+    description : str or None
+        Description of the covariate.
+    handler : Callable
+        Function to generate the stimulus array for each trial.
+    basis : Basis or None, optional
+        Basis object for the covariate, or None for raw.
+    offset : float, optional
+        Offset to apply to the covariate (in time units).
+    condition : Callable or None, optional
+        Optional function to filter trials for this covariate.
+    sdim : int
+        Stimulus dimension (set automatically).
+    edim : int
+        Effective dimension (set automatically).
     """
     design: DesignMatrix
     label: str
@@ -461,16 +548,21 @@ def _time2bin(timing, binwidth, start, stop):
     """
     Bin event times into a histogram.
 
-    :param timing: Array of event times.
-    :type timing: array-like
-    :param binwidth: Width of each bin.
-    :type binwidth: float
-    :param start: Start time of the first bin.
-    :type start: float
-    :param stop: End time of the last bin.
-    :type stop: float
-    :returns: Array of binned event counts.
-    :rtype: numpy.ndarray
+    Parameters
+    ----------
+    timing : array-like
+        Array of event times.
+    binwidth : float
+        Width of each bin.
+    start : float
+        Start time of the first bin.
+    stop : float
+        End time of the last bin.
+
+    Returns
+    -------
+    numpy.ndarray
+        Array of binned event counts.
     """
     duration = stop - start
     n_bins = ceil(duration / binwidth)
@@ -484,13 +576,33 @@ def raw_stim(label):
     """
     Return a handler function that extracts a raw stimulus array from a trial.
 
-    :param label: Key in the trial dict for the stimulus.
-    :type label: str
-    :returns: Function that extracts the stimulus array from a trial.
-    :rtype: Callable
+    Parameters
+    ----------
+    label : str
+        Key in the trial dict for the stimulus.
+
+    Returns
+    -------
+    Callable
+        Function that extracts the stimulus array from a trial.
     """
     return lambda t: t[label]
 
 
 def constant_stim(label, binfun):
+    """
+    Return a handler function that creates a constant stimulus array for a trial.
+
+    Parameters
+    ----------
+    label : str
+        Key in the trial dict for the stimulus.
+    binfun : Callable
+        Function to compute the number of bins.
+
+    Returns
+    -------
+    Callable
+        Function that creates a constant stimulus array for a trial.
+    """
     return lambda t: boxcar_stim(0, binfun(t.duration, True), binfun(t.duration, True), t[label])
