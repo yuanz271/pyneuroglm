@@ -63,7 +63,7 @@ class DesignMatrix:
         description,
         handler,
         basis=None,
-        offset=0,
+        offset=0.,
         condition: Callable | None = None,
     ):
         """
