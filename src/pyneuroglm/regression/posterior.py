@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import Any
 import warnings
 
 import numpy as np
@@ -6,9 +7,9 @@ from scipy.optimize import minimize
 from . import nonlinearity, likelihood, prior, optim
 
 
-def poisson_neglogpost(w, X, y, Cinv, nlfun, inds):
+def poisson(w, X, y, Cinv, nlfun, inds):
     """
-    Compute the negative log-posterior, gradient, and Hessian for a Poisson GLM with Gaussian prior.
+    Compute the log-posterior, gradient, and Hessian for a Poisson GLM with Gaussian prior.
 
     Parameters
     ----------
@@ -34,14 +35,14 @@ def poisson_neglogpost(w, X, y, Cinv, nlfun, inds):
     ddL : numpy.ndarray
         Hessian of the negative log-posterior.
     """
-    L, dL, ddL = likelihood.poisson_negloglik(w, X, y, nlfun, inds)
-    p, dp, ddp = prior.gaussian_zero_mean_inv(w, Cinv)
-    return L + p, dL + dp, ddL + ddp
+    L, dL, ddL = likelihood.poisson(w, X, y, nlfun, inds)
+    P, dP, ddP = prior.gaussian_zero_mean_inv(w, Cinv)
+    return L + P, dL + dP, ddL + ddP
 
 
-def bernoulli_neglogpost(w, X, y, Cinv, inds):
+def bernoulli(w, X, y, Cinv, inds):
     """
-    Placeholder for Bernoulli negative log-posterior.
+    Placeholder for Bernoulli log-posterior.
 
     Raises
     ------
@@ -73,15 +74,13 @@ def get_posterior_function(dist) -> Callable:
     match dist:
         case "poisson":
             nlfun = nonlinearity.exp
-            return lambda w, X, y, Cinv, inds: poisson_neglogpost(
-                w, X, y, Cinv, nlfun, inds
-            )
+            return lambda w, X, y, Cinv, inds: poisson(w, X, y, Cinv, nlfun, inds)
         case _:
             raise NotImplementedError(f"{dist=}")
         # case "bernoulli":
-            # return lambda w, X, y, Cinv, inds: bernoulli_neg_log_posterior(
-            #     w, X, y, Cinv, inds
-            # )
+        # return lambda w, X, y, Cinv, inds: bernoulli_neg_log_posterior(
+        #     w, X, y, Cinv, inds
+        # )
 
 
 def get_likelihood_function(dist, **kwargs):
@@ -103,7 +102,9 @@ def get_likelihood_function(dist, **kwargs):
     match dist:
         case "poisson":
             nlfun = nonlinearity.exp
-            return lambda w, X, y, Cinv, inds: likelihood.poisson_negloglik(w, X, y, nlfun, inds)
+            return lambda w, X, y, Cinv, inds: likelihood.poisson(w, X, y, nlfun, inds)
+        case _:
+            raise NotImplementedError(f"{dist=}")
 
 
 def initialize_lstsq(X, y, Cinv, cvfolds=None):
@@ -171,7 +172,15 @@ def initialize_zero(X, y, Cinv, cvfolds=None, bias=True, nlin=None):
     return w
 
 
-def get_posterior_weights(X, y, Cinv, dist="poisson", cvfolds=None, initialize=initialize_zero, init_kwargs=None):
+def get_posterior_weights(
+    X,
+    y,
+    Cinv,
+    dist="poisson",
+    cvfolds=None,
+    initialize=initialize_zero,
+    init_kwargs=None,
+):
     """
     Fit a GLM by maximizing the posterior and return weights, standard deviations, and Hessian.
 
@@ -210,26 +219,31 @@ def get_posterior_weights(X, y, Cinv, dist="poisson", cvfolds=None, initialize=i
         if init_kwargs is None:
             init_kwargs = {}
         w0 = initialize(X, y, Cinv, cvfolds, **init_kwargs)
+        args = (X, y, Cinv, np.arange(len(y)))
         obj = get_posterior_function(dist)
-        obj = optim.Objective(obj)  # pyright: ignore[reportArgumentType]
-        opt = minimize(
+        obj = optim.Objective(obj, flip_sign=True)
+        opt: Any = minimize(
             obj.function,
             w0,
-            (X, y, Cinv, np.arange(len(y))),
-            method="trust-ncg",
+            args,
+            method="Newton-CG",
             jac=obj.gradient,
             hess=obj.hessian,
         )
         if not opt.success:
             warnings.warn("Optimization not succeed")
+        # print(opt)
         w = opt.x
-        H = opt.hess
-        if hasattr(opt, 'hess_inv'):
-            invH = opt.hess_inv
-        else:
+        H: Any = obj.hessian(w, *args)  # negative Hessian
+        # Ensure H is a floating-point array for np.linalg.inv
+        try:
             invH = np.linalg.inv(H)
-        sd = np.sqrt(np.diag(invH))
+            sd = np.sqrt(invH.diagonal())
+        except np.linalg.LinAlgError as e:
+            warnings.warn(f"Hessian inversion failed: {e}")
+            invH = np.full(H.shape, np.nan)
+            sd = np.full(H.shape[0], np.nan)
     else:
         raise NotImplementedError
 
-    return w, sd, H
+    return w, sd, invH

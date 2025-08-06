@@ -29,7 +29,7 @@ def ridge(rho, nx, add_constant=False):
     rho : float
         Regularization parameter.
     nx : int
-        Number of parameters.
+        Number of weights.
     add_constant : bool, optional
         If True, do not regularize the first parameter (intercept).
 
@@ -48,7 +48,7 @@ def ridge(rho, nx, add_constant=False):
 
 def gaussian_zero_mean_inv(w, Cinv):
     """
-    Evaluate the negative log Gaussian prior with mean zero and inverse covariance.
+    Evaluate the log Gaussian prior with mean zero and inverse covariance.
 
     Parameters
     ----------
@@ -60,20 +60,22 @@ def gaussian_zero_mean_inv(w, Cinv):
     Returns
     -------
     p : float
-        Negative log-prior.
+        log-prior.
     dp : numpy.ndarray
-        Gradient of the negative log-prior.
+        Gradient of the log-prior.
     ddp : numpy.ndarray
         Hessian (inverse covariance matrix).
 
     Notes
     -----
-    If `w` has one more element than `Cinv` (i.e., includes an intercept), the first element is ignored.
+    If `w` has more or fewer elements than `Cinv` (i.e., includes an intercept), the first element is ignored.
     """
     # check intercept
-    if len(w) == Cinv.shape[0] + 1:
-        w = w[1:]  # assume the 1st column is the intercept
-
-    dp = Cinv @ w
-    p = 0.5 * np.inner(w, dp)
-    return p, dp, Cinv
+    assert len(w) == Cinv.shape[0], (
+        "Unmatched size of weights and covariance. Exclude the intercept if it is in the weights vector."
+    )
+    # log p(w) = -0.5*log|S| - 0.5*w' Sinv w
+    ddP = -Cinv
+    dP = ddP @ w
+    P = 0.5 * np.inner(w, dP)
+    return P, dP, ddP

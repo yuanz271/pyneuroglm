@@ -15,18 +15,15 @@ class Objective:
     ----------
     fun : callable
         Function that returns a tuple (value, gradient, Hessian) for given parameters.
-
-    Attributes
-    ----------
-    _fun : callable
-        The objective function.
-    _ret : tuple or None
-        Cached return value from the last evaluation.
-    _x : array-like or None
-        Parameters at which the function was last evaluated.
+    flip_sign: bool
+        Flip the sign of returns of `fun`
     """
 
-    def __init__(self, fun: Callable[..., tuple[ArrayLike, ArrayLike, ArrayLike]]) -> None:
+    def __init__(
+        self,
+        fun: Callable[..., tuple[ArrayLike, ArrayLike, ArrayLike]],
+        flip_sign=False,
+    ) -> None:
         """
         Initialize the Objective wrapper.
 
@@ -34,10 +31,13 @@ class Objective:
         ----------
         fun : callable
             Function that returns (value, gradient, Hessian).
+        flip_sign: bool
+            Flip the sign of returns of `fun`
         """
         self._fun = fun
-        self._ret = None
+        self._ret: tuple | None = None
         self._x = None
+        self._flip_sign = flip_sign
 
     def _compute(self, x, *args) -> tuple[float, NDArray, NDArray]:
         """
@@ -58,8 +58,8 @@ class Objective:
         if self._x is None or self._ret is None or not np.array_equal(x, self._x):
             self._x = x
             self._ret = self._fun(x, *args)
-        return self._ret # type: ignore
-    
+        return self._ret  # type: ignore
+
     def function(self, x, *args) -> float:
         """
         Evaluate and return the objective function value.
@@ -77,8 +77,11 @@ class Objective:
             Value of the objective function.
         """
         ret = self._compute(x, *args)
-        return ret[0]
-    
+        if self._flip_sign:
+            return -ret[0]
+        else:
+            return ret[0]
+
     def gradient(self, x, *args) -> NDArray:
         """
         Evaluate and return the gradient of the objective function.
@@ -96,8 +99,11 @@ class Objective:
             Gradient of the objective function.
         """
         ret = self._compute(x, *args)
-        return ret[1]
-    
+        if self._flip_sign:
+            return -ret[1]
+        else:
+            return ret[1]
+
     def hessian(self, x, *args) -> NDArray:
         """
         Evaluate and return the Hessian of the objective function.
@@ -115,4 +121,7 @@ class Objective:
             Hessian of the objective function.
         """
         ret = self._compute(x, *args)
-        return ret[2]
+        if self._flip_sign:
+            return -ret[2]
+        else:
+            return ret[2]
