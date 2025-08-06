@@ -30,12 +30,13 @@ class DesignMatrix:
     zstats : dict, optional
         Dictionary of z-scoring statistics.
     """
+
     experiment: Experiment
     covariates: dict = field(default_factory=dict)
     bias: bool = False
     zstats: dict = field(default_factory=dict)
     _X: NDArray | None = field(init=False, default=None)
-    
+
     @property
     def X(self) -> NDArray:
         """
@@ -53,7 +54,8 @@ class DesignMatrix:
         """
         if self._X is None:
             raise RuntimeError("Design matrix has not been compiled")
-        return self._X
+        else:
+            return self._X
 
     @property
     def edim(self):
@@ -84,7 +86,7 @@ class DesignMatrix:
         description,
         handler,
         basis=None,
-        offset=0.,
+        offset=0.0,
         condition: Callable | None = None,
     ):
         """
@@ -109,7 +111,9 @@ class DesignMatrix:
             self, label, description, handler, basis, offset, condition
         )
 
-    def add_covariate_constant(self, label, stim_label=None, description=None, **kwargs):
+    def add_covariate_constant(
+        self, label, stim_label=None, description=None, **kwargs
+    ):
         """
         Add a constant covariate.
 
@@ -182,7 +186,10 @@ class DesignMatrix:
         """
         if basis is None:
             basis = make_nonlinear_raised_cos(
-                10, self.experiment.time_unit_to_ms_ratio * self.experiment.binsize, (0., 100.), 1.
+                10,
+                self.experiment.time_unit_to_ms_ratio * self.experiment.binsize,
+                (0.0, 100.0),
+                1.0,
             )
 
         offset = basis.kwargs["nl_offset_in_ms"] / self.experiment.time_unit_to_ms_ratio
@@ -246,7 +253,9 @@ class DesignMatrix:
             description,
             lambda trial: boxcar_stim(
                 binfun(trial[on_label]),
-                binfun(trial[off_label], True),  # NOTE: next bin if the event ocurred at the right bin edge
+                binfun(
+                    trial[off_label], True
+                ),  # NOTE: next bin if the event ocurred at the right bin edge
                 binfun(trial.duration, True),
             ),
             **kwargs,
@@ -294,9 +303,7 @@ class DesignMatrix:
         trials = self._filter_trials(trial_indices)
         return np.concatenate([trial[label] for trial in trials])
 
-    def get_binned_spike(
-        self, label, trial_indices=None, concat=True
-    ) -> NDArray:
+    def get_binned_spike(self, label, trial_indices=None, concat=True) -> NDArray:
         """
         Get binned spike counts for a label across selected trials.
 
@@ -393,20 +400,20 @@ class DesignMatrix:
         assert self.edim == len(w)
 
         if self.zstats:
-            w = w * self.zstats['s'].squeeze() + self.zstats['m'].squeeze()
-        
+            w = w * self.zstats["s"].squeeze() + self.zstats["m"].squeeze()
+
         sections = np.cumsum([covar.edim for covar in self.covariates.values()])[:-1]
 
         ws = np.array_split(
             w,
             sections,
         )
-        
+
         binsize = self.experiment.binsize
 
         def covar_weight(covar: Covariate, w):
             basis = covar.basis
-            
+
             if basis is None:
                 tr = np.arange(len(w)) * binsize + covar.offset
                 wout = w
@@ -427,8 +434,11 @@ class DesignMatrix:
 
             return {"label": covar.label, "tr": tr, "data": wout}
 
-        w_dict = {covar.label: covar_weight(covar, wk) for covar, wk in zip(self.covariates.values(), ws)}
-        
+        w_dict = {
+            covar.label: covar_weight(covar, wk)
+            for covar, wk in zip(self.covariates.values(), ws)
+        }
+
         return w_dict
 
     def get_design_matrix_col_indices(self, covar_labels: str | list[str]):
@@ -460,7 +470,7 @@ class DesignMatrix:
             [indices[covar_label] for covar_label in covar_labels]
         )
         return col_indices
-    
+
     def zscore_columns(self, column_indices=None):
         """
         Z-score specified columns of the design matrix.
@@ -481,10 +491,10 @@ class DesignMatrix:
             m[:, column_indices] = mm
             s[:, column_indices] = ss
             X[:, column_indices] = Z
-        
+
         self._X = X
-        self.zstats['m'] = m
-        self.zstats['s'] = s
+        self.zstats["m"] = m
+        self.zstats["s"] = s
 
 
 @dataclass
@@ -513,6 +523,7 @@ class Covariate:
     edim : int
         Effective dimension (set automatically).
     """
+
     design: DesignMatrix
     label: str
     description: str | None
@@ -605,4 +616,6 @@ def constant_stim(label, binfun):
     Callable
         Function that creates a constant stimulus array for a trial.
     """
-    return lambda t: boxcar_stim(0, binfun(t.duration, True), binfun(t.duration, True), t[label])
+    return lambda t: boxcar_stim(
+        0, binfun(t.duration, True), binfun(t.duration, True), t[label]
+    )
