@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 from matplotlib import pyplot as plt
 from pymatreader import read_mat
-# from sklearn.linear_model import PoissonRegressor
+from sklearn.linear_model import PoissonRegressor
 
 from pyneuroglm import basis
 from pyneuroglm.experiment import Experiment, Trial
@@ -135,9 +135,9 @@ def main():
 
     # %% Fit GLM
     n, m = dm.X.shape
-    X = np.column_stack((np.ones(n), X))
+    X = np.column_stack((np.ones(n), dm.X))
     w, sd, _ = get_posterior_weights(
-        X, y, prior.ridge(50, m, True), init_kwargs={"nlin": np.log}
+        X, y, prior.ridge_Cinv(50, m, True), init_kwargs={"nlin": np.log}
     )
 
     # intercept = w[0]
@@ -146,12 +146,26 @@ def main():
     weights = dm.combine_weights(w)
 
     n_covars = len(dm.covariates)
-    fig, axs = plt.subplots(n_covars, 1, figsize=(12, 2 * n_covars))
+    fig, axs = plt.subplots(n_covars, 2, figsize=(24, 2 * n_covars))
     for k, (lk, wk) in enumerate(weights.items()):
         assert lk == wk["label"]
-        ax = axs[k]
+        ax = axs[k, 0]
         ax.plot(wk["tr"], wk["data"])
         ax.set_title(lk)
+
+    # %% sklearn
+    n, m = dm.X.shape
+    poisreg = PoissonRegressor(alpha=50., solver="newton-cholesky").fit(dm.X, y)
+
+    w_sk = poisreg.coef_
+    weights = dm.combine_weights(w_sk)
+
+    for k, (lk, wk) in enumerate(weights.items()):
+        assert lk == wk["label"]
+        ax = axs[k, 1]
+        ax.plot(wk["tr"], wk["data"])
+        ax.set_title(lk)
+
     fig.tight_layout()
     fig.savefig(this_dir / "glm_weights.pdf")
     plt.close()

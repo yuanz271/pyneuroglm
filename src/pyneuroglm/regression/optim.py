@@ -1,7 +1,7 @@
 from collections.abc import Callable
 
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import NDArray
 
 
 class Objective:
@@ -21,7 +21,7 @@ class Objective:
 
     def __init__(
         self,
-        fun: Callable[..., tuple[ArrayLike, ArrayLike, ArrayLike]],
+        fun: Callable[..., tuple[float, float | NDArray, float | NDArray]],
         flip_sign=False,
     ) -> None:
         """
@@ -35,11 +35,11 @@ class Objective:
             Flip the sign of returns of `fun`
         """
         self._fun = fun
-        self._ret: tuple | None = None
+        self._ret = None
         self._x = None
         self._flip_sign = flip_sign
 
-    def _compute(self, x, *args) -> tuple[float, NDArray, NDArray]:
+    def _compute(self, x, *args) -> tuple:
         """
         Compute or retrieve cached function, gradient, and Hessian values.
 
@@ -57,8 +57,11 @@ class Objective:
         """
         if self._x is None or self._ret is None or not np.array_equal(x, self._x):
             self._x = x
-            self._ret = self._fun(x, *args)
-        return self._ret  # type: ignore
+            ret = self._fun(x, *args)
+            if self._flip_sign:
+                ret = tuple(-v for v in ret)
+            self._ret = ret
+        return self._ret
 
     def function(self, x, *args) -> float:
         """
@@ -77,10 +80,7 @@ class Objective:
             Value of the objective function.
         """
         ret = self._compute(x, *args)
-        if self._flip_sign:
-            return -ret[0]
-        else:
-            return ret[0]
+        return ret[0]
 
     def gradient(self, x, *args) -> NDArray:
         """
@@ -99,10 +99,7 @@ class Objective:
             Gradient of the objective function.
         """
         ret = self._compute(x, *args)
-        if self._flip_sign:
-            return -ret[1]
-        else:
-            return ret[1]
+        return ret[1]
 
     def hessian(self, x, *args) -> NDArray:
         """
@@ -121,7 +118,4 @@ class Objective:
             Hessian of the objective function.
         """
         ret = self._compute(x, *args)
-        if self._flip_sign:
-            return -ret[2]
-        else:
-            return ret[2]
+        return ret[2]

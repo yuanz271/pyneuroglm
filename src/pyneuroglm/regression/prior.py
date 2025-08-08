@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def none(rho, nx):
+def none_Cinv(rho, nx):
     """
     Return a zero (no prior) inverse covariance matrix.
 
@@ -20,7 +20,7 @@ def none(rho, nx):
     return np.zeros((nx, nx))
 
 
-def ridge(rho, nx, add_constant=False):
+def ridge_Cinv(rho, nx, add_constant=False):
     """
     Return a ridge (L2) prior inverse covariance matrix.
 

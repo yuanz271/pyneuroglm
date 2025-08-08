@@ -78,7 +78,8 @@ class DesignMatrix:
         bias : bool, optional
             Whether to include the bias column. Default is True.
         """
-        self.bias = bias
+        raise NotImplementedError
+        # self.bias = bias
 
     def add_covariate(
         self,
@@ -374,8 +375,8 @@ class DesignMatrix:
             assert Xt.shape == (n_bins, self.edim)
             if not np.all(np.isfinite(Xt)):
                 warnings.warn("Design matrix contains NaN or Inf")
-            if self.bias:
-                Xt = np.column_stack([np.ones(Xt.shape[0]), Xt])
+            # if self.bias:
+            #     Xt = np.column_stack([np.ones(Xt.shape[0]), Xt])
             X.append(Xt)
 
         self._X = np.vstack(X)
