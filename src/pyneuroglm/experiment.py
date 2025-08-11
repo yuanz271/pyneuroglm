@@ -77,11 +77,11 @@ class Experiment:
     """
     time_unit: str
     binsize: float | int
-    eid: str
-    meta: dict | None = None
+    eid: Any
+    meta: dict = field(default_factory=dict)
     variables: dict[Any, Variable] = field(default_factory=dict)
     trials: OrderedDict = field(default_factory=OrderedDict)
-    time_unit_to_ms_ratio: float = 1.
+    time_unit_to_ms_ratio: float = field(init=False, default=1.)
 
     def __post_init__(self):
         """

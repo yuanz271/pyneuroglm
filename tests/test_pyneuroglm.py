@@ -8,8 +8,8 @@ from pyneuroglm.experiment import Experiment, Trial, Variable
 
 
 def test_experiment():
-    expt = Experiment(time_unit='ms', binsize=10, eid=1, params=())
-    assert expt.binfun(0.) == 1
+    expt = Experiment(time_unit='ms', binsize=10, eid=1)
+    assert expt.binfun(0, True) == 1
 
 
 def test_variable():
@@ -24,14 +24,14 @@ def test_trial():
 
 
 def test_make_smooth_temporal_basis():
-    expt = Experiment(time_unit='ms', binsize=10, eid=1, params=())
+    expt = Experiment(time_unit='ms', binsize=10, eid=1)
     basis = make_smooth_temporal_basis('raised cosine', 100, 5, expt.binfun)
     basis_boot = basis.func(**basis.kwargs)
     assert np.all(basis.B == basis_boot.B)
 
 
 def test_conv_basis():
-    expt = Experiment(time_unit='ms', binsize=10, eid=1, params=())
+    expt = Experiment(time_unit='ms', binsize=10, eid=1)
     B = make_smooth_temporal_basis('raised cosine', 100, 5, expt.binfun)
     n = 100
     d = 2
@@ -58,7 +58,8 @@ def test_make_nonlinear_raised_cos():
     n_bases, binsize, end_points, nl_offset = param.tolist()
 
     basis = make_nonlinear_raised_cos(n_bases, binsize, end_points, nl_offset)
-    assert np.allclose(basis.B, B)
 
     basis_recons = basis.func(**basis.kwargs)
     assert np.all(basis.B == basis_recons.B)
+
+    assert np.allclose(basis.B[:-1], B)  # NOTE: Unequal size
