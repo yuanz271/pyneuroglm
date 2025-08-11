@@ -32,9 +32,9 @@ class DesignMatrix:
     """
 
     experiment: Experiment
-    covariates: dict = field(default_factory=dict)
     bias: bool = False
-    zstats: dict = field(default_factory=dict)
+    covariates: dict = field(init=False, default_factory=dict)
+    zstats: dict = field(init=False, default_factory=dict)
     _X: NDArray | None = field(init=False, default=None)
 
     @property
