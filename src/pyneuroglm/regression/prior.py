@@ -20,7 +20,7 @@ def none_Cinv(rho, nx):
     return np.zeros((nx, nx))
 
 
-def ridge_Cinv(rho, nx, add_constant=False):
+def ridge_Cinv(rho, nx, intercept_prepended=False):
     """
     Return a ridge (L2) prior inverse covariance matrix.
 
@@ -30,7 +30,7 @@ def ridge_Cinv(rho, nx, add_constant=False):
         Regularization parameter.
     nx : int
         Number of weights.
-    add_constant : bool, optional
+    intercept_prepended : bool, optional
         If True, do not regularize the first parameter (intercept).
 
     Returns
@@ -38,11 +38,10 @@ def ridge_Cinv(rho, nx, add_constant=False):
     numpy.ndarray
         Diagonal matrix of shape (nx, nx) or (nx+1, nx+1) if add_constant is True.
     """
-    if add_constant:
-        d = np.ones(1 + nx)
+    d = np.ones(nx)
+    if intercept_prepended:
         d[0] = 0
-    else:
-        d = np.ones(nx)
+
     return np.diag(d * rho)
 
 
