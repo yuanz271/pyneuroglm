@@ -1,3 +1,9 @@
+"""
+Basis functions for temporal modeling in GLMs.
+
+This module provides tools for creating and manipulating temporal basis functions
+commonly used in generalized linear models for neural data analysis.
+"""
 from collections.abc import Callable
 from dataclasses import dataclass
 from math import ceil

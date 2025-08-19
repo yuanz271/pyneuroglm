@@ -1,3 +1,9 @@
+"""
+Design matrix construction for GLM experiments.
+
+This module provides tools for building design matrices from experimental data,
+including covariate specification and basis function application.
+"""
 from math import ceil
 import warnings
 from collections.abc import Callable
