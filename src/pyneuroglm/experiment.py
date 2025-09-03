@@ -109,7 +109,7 @@ class Experiment:
         t : array-like
             Event time(s).
         right_edge : bool, optional
-            Use the right bin edge to determine, equal to number of bins indices. Default is False.
+            If True, return number of bins. If False, return bin indices. Default is False.
 
         Returns
         -------
@@ -163,7 +163,7 @@ class Experiment:
         description : str
             Description of the variable.
         """
-        self.variables[label] = Variable(label, description, 'value')
+        self.variables[label] = Variable(label, description, 'timing')
 
     def register_spike_train(self, label, description):
         """

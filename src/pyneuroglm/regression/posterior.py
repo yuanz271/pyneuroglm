@@ -31,7 +31,7 @@ def poisson(w, X, y, Cinv, nlfun, inds):
     nlfun : callable
         Nonlinearity function.
     inds : array-like
-        Indices to subset the data.
+        Array of indices to subset the data for computation.
 
     Returns
     -------
