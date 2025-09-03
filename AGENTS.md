@@ -9,7 +9,7 @@
 ## Build, Test, and Development Commands
 - Install (uv): `uv sync --group dev` — create a local env and install runtime + dev tools.
 - Install (pip): `pip install -e .` then `pip install pytest matplotlib` for dev extras.
-- Test all: `pytest -q` or `uv run pytest -q` — runs unit tests in `tests/`.
+- Test all: `uv run pytest` (add `-q` for quiet) — runs unit tests in `tests/`. Alternatively: `pytest` in a pip venv.
 - Run a single test: `pytest tests/test_pyneuroglm.py::test_experiment -q`.
 - Build wheel/sdist: `uv build` (or `python -m build` if you prefer the generic tool).
 
