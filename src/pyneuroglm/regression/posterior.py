@@ -1,3 +1,10 @@
+"""
+Posterior objectives and fitting routines.
+
+Provides helpers to compose log-likelihoods with Gaussian priors and
+fit GLMs via Newton-CG, returning MAP weights and uncertainty.
+"""
+
 from collections.abc import Callable
 from typing import Any
 import warnings
@@ -29,11 +36,11 @@ def poisson(w, X, y, Cinv, nlfun, inds):
     Returns
     -------
     L : float
-        Negative log-posterior.
+        Log-posterior.
     dL : numpy.ndarray
-        Gradient of the negative log-posterior.
+        Gradient of the log-posterior.
     ddL : numpy.ndarray
-        Hessian of the negative log-posterior.
+        Hessian of the log-posterior.
     """
     L, dL, ddL = likelihood.poisson(w, X, y, nlfun, inds)
     P, dP, ddP = prior.gaussian_zero_mean_inv(w, Cinv)
@@ -42,7 +49,7 @@ def poisson(w, X, y, Cinv, nlfun, inds):
 
 def bernoulli(w, X, y, Cinv, inds):
     """
-    Placeholder for Bernoulli log-posterior.
+    Raise NotImplementedError for Bernoulli log-posterior.
 
     Raises
     ------
@@ -98,6 +105,11 @@ def get_likelihood_function(dist, **kwargs):
     -------
     callable
         Likelihood function for the specified distribution.
+
+    Raises
+    ------
+    NotImplementedError
+        If the distribution is not supported.
     """
     match dist:
         case "poisson":
@@ -207,8 +219,8 @@ def get_posterior_weights(
         MAP weights.
     sd : numpy.ndarray
         Standard deviations of the weights.
-    H : numpy.ndarray
-        Hessian at the MAP weights.
+    invH : numpy.ndarray
+        Inverse Hessian at the MAP weights (approximate covariance).
 
     Raises
     ------

@@ -1,3 +1,11 @@
+"""
+Temporal basis functions and stimulus utilities for GLM design.
+
+Provides helpers to construct smooth temporal bases (raised cosine, boxcar),
+apply them to covariates, and generate simple stimulus arrays used throughout
+the design matrix construction.
+"""
+
 from collections.abc import Callable
 from dataclasses import dataclass
 from math import ceil
@@ -72,9 +80,7 @@ def make_smooth_temporal_basis(
     """
 
     def rcos(x, period):
-        return np.where(
-            np.abs(x / period) < 0.5, np.cos(x * 2 * np.pi / period) * 0.5 + 0.5, 0
-        )
+        return np.where(np.abs(x / period) < 0.5, np.cos(x * 2 * np.pi / period) * 0.5 + 0.5, 0)
 
     n_bins = binfun(duration, True)  # total number of bins
 
@@ -91,9 +97,7 @@ def make_smooth_temporal_basis(
         BBstm = np.zeros_like(ttb)
         bcenters = width * np.arange(1, n_bases + 1) - width / 2
         for k in range(n_bases):
-            mask = np.logical_and(
-                ttb[:, k] > ceil(width * k), ttb[:, k] <= ceil(width * (k + 1))
-            )
+            mask = np.logical_and(ttb[:, k] > ceil(width * k), ttb[:, k] <= ceil(width * (k + 1)))
             BBstm[mask, k] = 1.0 / np.count_nonzero(mask)
     else:
         raise ValueError(f"Unknown basis shape: {shape}")
@@ -172,7 +176,9 @@ def conv_basis(x: ArrayLike, basis: Basis, offset: int = 0) -> NDArray:
     Returns
     -------
     numpy.ndarray
-        Output array of shape (T, n_bases), where n_bases is the number of basis functions in the basis.
+        Output array of shape (T, dx * n_bases), where `dx` is the number of
+        input covariates (columns of `x`) and `n_bases` is the number of basis
+        functions in `basis`.
     """
     x = np.asarray(x)
 
@@ -245,7 +251,9 @@ def boxcar_stim(start_bin: int, end_bin: int, n_bins: int, v: ArrayLike = 1.0) -
     Returns
     -------
     numpy.ndarray
-        Stimulus array of shape (n_bins, dv) with value v in [start_bin:end_bin], zeros elsewhere.
+        Stimulus array of shape (n_bins, d) with value `v` in
+        [start_bin:end_bin], zeros elsewhere; `d` is 1 for scalar `v` or
+        equals `len(v)` for a 1D array.
 
     Raises
     ------
@@ -265,7 +273,9 @@ def boxcar_stim(start_bin: int, end_bin: int, n_bins: int, v: ArrayLike = 1.0) -
         raise TypeError("v must be a scalar or 1D Numpy array")
     # print(f"{v=}")
     x = np.zeros((n_bins, d))
-    x[start_bin:end_bin, :] = v  # NOTE: neuroGLM effectively uses the right bin edge, but we use the left bin edge.
+    x[start_bin:end_bin, :] = (
+        v  # NOTE: neuroGLM effectively uses the right bin edge, but we use the left bin edge.
+    )
     # print(f"{x=}")
     return x
 
@@ -295,9 +305,7 @@ def raised_cos(x: ArrayLike, c: ArrayLike, dc: float) -> NDArray:
     return (np.cos(d) + 1) * 0.5
 
 
-def make_nonlinear_raised_cos(
-    n_bases, binsize_in_ms, end_points_in_ms, nl_offset_in_ms
-) -> Basis:
+def make_nonlinear_raised_cos(n_bases, binsize_in_ms, end_points_in_ms, nl_offset_in_ms) -> Basis:
     """
     Create a nonlinearly stretched raised-cosine temporal basis.
 

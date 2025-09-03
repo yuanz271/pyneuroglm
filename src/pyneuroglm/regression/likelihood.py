@@ -1,11 +1,16 @@
+"""
+Likelihood functions for GLMs.
+
+This module implements distribution-specific log-likelihoods and their
+first and second derivatives for optimization-based fitting.
+"""
+
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.special import xlogy
 
 
-def poisson(
-    w, X, y, inverse_link, subset_inds=None
-) -> tuple[ArrayLike, ArrayLike, ArrayLike]:
+def poisson(w, X, y, inverse_link, subset_inds=None) -> tuple[ArrayLike, ArrayLike, ArrayLike]:
     """
     Compute the log-likelihood, gradient, and Hessian for a Poisson GLM.
 
@@ -25,11 +30,11 @@ def poisson(
     Returns
     -------
     L : float
-        Negative log-likelihood.
+        Log-likelihood.
     dL : numpy.ndarray
-        Gradient of the negative log-likelihood with respect to `w`.
+        Gradient of the log-likelihood with respect to `w`.
     H : numpy.ndarray
-        Hessian of the negative log-likelihood with respect to `w`.
+        Hessian of the log-likelihood with respect to `w`.
 
     Notes
     -----
@@ -47,9 +52,7 @@ def poisson(
 
     nz = lam > 0
 
-    L = np.sum(xlogy(y, lam)) - np.sum(
-        lam
-    )  # Compute x*log(y) so that the result is 0 if x = 0.
+    L = np.sum(xlogy(y, lam)) - np.sum(lam)  # Compute x*log(y) so that the result is 0 if x = 0.
 
     y = y[nz]
     lam = lam[nz]
@@ -63,9 +66,7 @@ def poisson(
     dL = X.T @ d  # (p, n) (n,) -> (p,)  gradient
 
     # ddL = X'HX
-    h = d * ddlam - (ylam + 1) / lam * np.square(
-        dlam
-    )  # (n,) (n,) + (n,) (n,) -> (n,)  diagonal
+    h = d * ddlam - (ylam + 1) / lam * np.square(dlam)  # (n,) (n,) + (n,) (n,) -> (n,)  diagonal
     ddL = np.einsum("ij,i,ik->jk", X, h, X)  # (p ,n) (n,n) (n, p) -> (p, p)  # Hessian
 
     return L, dL, ddL

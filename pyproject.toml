@@ -21,4 +21,18 @@ build-backend = "uv_build"
 dev = [
     "matplotlib>=3.10.3",
     "pytest>=8.4.1",
+    "ruff>=0.12.11",
 ]
+
+[tool.pydocstyle]
+convention = "numpy"
+add-ignore = [
+    "D107", # Missing docstring in __init__ (dataclasses often self-document)
+]
+
+[tool.ruff]
+line-length = 100
+extend-select = ["D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"

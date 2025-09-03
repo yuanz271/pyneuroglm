@@ -1,3 +1,10 @@
+"""
+Optimization utilities and wrappers.
+
+Contains a lightweight Objective wrapper that caches function, gradient,
+and Hessian evaluations to reduce redundant computation in optimizers.
+"""
+
 from collections.abc import Callable
 
 import numpy as np

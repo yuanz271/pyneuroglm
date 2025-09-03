@@ -1,3 +1,10 @@
+"""
+Prior specifications for GLM weights.
+
+This module provides simple Gaussian priors and helpers that return the
+log-prior, its gradient, and Hessian in NumPy-friendly forms.
+"""
+
 import numpy as np
 
 
@@ -71,9 +78,9 @@ def gaussian_zero_mean_inv(w, Cinv):
     If `w` has more or fewer elements than `Cinv` (i.e., includes an intercept), the first element is ignored.
     """
     # check intercept
-    assert len(w) == Cinv.shape[0], (
-        "Unmatched size of weights and covariance. Exclude the intercept if it is in the weights vector."
-    )
+    assert (
+        len(w) == Cinv.shape[0]
+    ), "Unmatched size of weights and covariance. Exclude the intercept if it is in the weights vector."
     # log p(w) = -0.5*log|S| - 0.5*w' Sinv w
     ddP = -Cinv
     dP = ddP @ w

@@ -1,3 +1,11 @@
+"""
+Design matrix construction for neuroGLM-style experiments.
+
+Defines `DesignMatrix` and `Covariate` to assemble covariates, apply temporal
+bases, and compile per-trial inputs into a single matrix suitable for GLM
+fitting.
+"""
+
 from math import ceil
 import warnings
 from collections.abc import Callable
@@ -77,6 +85,11 @@ class DesignMatrix:
         ----------
         bias : bool, optional
             Whether to include the bias column. Default is True.
+
+        Raises
+        ------
+        NotImplementedError
+            This method is not implemented.
         """
         raise NotImplementedError
         # self.bias = bias
@@ -112,9 +125,7 @@ class DesignMatrix:
             self, label, description, handler, basis, offset, condition
         )
 
-    def add_covariate_constant(
-        self, label, stim_label=None, description=None, **kwargs
-    ):
+    def add_covariate_constant(self, label, stim_label=None, description=None, **kwargs):
         """
         Add a constant covariate.
 
@@ -164,9 +175,7 @@ class DesignMatrix:
             self,
             label,
             description,
-            lambda trial: delta_stim(
-                binfun(trial[stim_label]), binfun(trial.duration, True)
-            ),
+            lambda trial: delta_stim(binfun(trial[stim_label]), binfun(trial.duration, True)),
             **kwargs,
         )
 
@@ -194,18 +203,16 @@ class DesignMatrix:
             )
 
         offset = basis.kwargs["nl_offset_in_ms"] / self.experiment.time_unit_to_ms_ratio
-        assert offset > 0, (
-            "offset must be greater than 0"
-        )  # make sure causal. no instantaneous interaction
+        assert (
+            offset > 0
+        ), "offset must be greater than 0"  # make sure causal. no instantaneous interaction
         binfun = self.experiment.binfun
 
         covar = Covariate(
             self,
             label,
             description,
-            lambda trial: delta_stim(
-                binfun(trial[stim_label]), binfun(trial.duration, True)
-            ),
+            lambda trial: delta_stim(binfun(trial[stim_label]), binfun(trial.duration, True)),
             basis,
             offset,
         )
@@ -224,13 +231,9 @@ class DesignMatrix:
         **kwargs
             Additional arguments for Covariate.
         """
-        self.covariates[label] = Covariate(
-            self, label, description, raw_stim(label), **kwargs
-        )
+        self.covariates[label] = Covariate(self, label, description, raw_stim(label), **kwargs)
 
-    def add_covariate_boxcar(
-        self, label, on_label, off_label, description=None, **kwargs
-    ):
+    def add_covariate_boxcar(self, label, on_label, off_label, description=None, **kwargs):
         """
         Add a boxcar (rectangular) covariate.
 
@@ -266,7 +269,7 @@ class DesignMatrix:
 
     def _filter_trials(self, trial_indices):
         """
-        Internal helper to select trials by index.
+        Select trials by index.
 
         Parameters
         ----------
@@ -315,12 +318,17 @@ class DesignMatrix:
         trial_indices : list or None, optional
             List of trial indices or None for all trials.
         concat : bool, optional
-            Whether to concatenate results across trials.
+            Ignored; results are always concatenated across trials.
 
         Returns
         -------
         numpy.ndarray
-            Binned spike counts (concatenated array or list of arrays).
+            1D array of binned spike counts concatenated across trials.
+
+        Notes
+        -----
+        The `concat` parameter is reserved for future use; the current
+        implementation always concatenates per-trial results.
         """
         trials = self._filter_trials(trial_indices)
         expt = self.experiment
@@ -355,9 +363,7 @@ class DesignMatrix:
             n_bins = binfun(trial.duration, True)
             Xt = []
             for covar in self.covariates.values():
-                if covar.condition is not None and not covar.condition(
-                    trial
-                ):  # skip trial
+                if covar.condition is not None and not covar.condition(trial):  # skip trial
                     continue
                 stim = covar.handler(trial)
 
@@ -367,9 +373,7 @@ class DesignMatrix:
                 if covar.basis is None:
                     Xc = stim
                 else:
-                    Xc = conv_basis(
-                        stim, covar.basis, ceil(covar.offset / self.experiment.binsize)
-                    )
+                    Xc = conv_basis(stim, covar.basis, ceil(covar.offset / self.experiment.binsize))
                 Xt.append(Xc)
             Xt = np.column_stack(Xt)
             assert Xt.shape == (n_bins, self.edim)
@@ -390,7 +394,7 @@ class DesignMatrix:
         Parameters
         ----------
         w : numpy.ndarray
-            Weight vector or matrix.
+            1D weight vector of shape (edim,).
 
         Returns
         -------
@@ -436,8 +440,7 @@ class DesignMatrix:
             return {"label": covar.label, "tr": tr, "data": wout}
 
         w_dict = {
-            covar.label: covar_weight(covar, wk)
-            for covar, wk in zip(self.covariates.values(), ws)
+            covar.label: covar_weight(covar, wk) for covar, wk in zip(self.covariates.values(), ws)
         }
 
         return w_dict
@@ -463,13 +466,9 @@ class DesignMatrix:
         start = [0] + csum[:-1]
         end = csum
 
-        indices = {
-            covar.label: np.arange(start[k], end[k]) for k, covar in enumerate(covars)
-        }
+        indices = {covar.label: np.arange(start[k], end[k]) for k, covar in enumerate(covars)}
 
-        col_indices = np.concatenate(
-            [indices[covar_label] for covar_label in covar_labels]
-        )
+        col_indices = np.concatenate([indices[covar_label] for covar_label in covar_labels])
         return col_indices
 
     def zscore_columns(self, column_indices=None):
@@ -536,6 +535,12 @@ class Covariate:
     edim: int = field(init=False)  # (covariate) effective dimension
 
     def __post_init__(self):
+        """Initialize derived dimensions from a template trial.
+
+        Infers stimulus dimension (`sdim`) from the handler's output on a
+        template trial, and sets effective dimension (`edim`) based on the
+        presence of a temporal basis.
+        """
         if self.description is None:
             self.description = self.label
 
@@ -617,6 +622,4 @@ def constant_stim(label, binfun):
     Callable
         Function that creates a constant stimulus array for a trial.
     """
-    return lambda t: boxcar_stim(
-        0, binfun(t.duration, True), binfun(t.duration, True), t[label]
-    )
+    return lambda t: boxcar_stim(0, binfun(t.duration, True), binfun(t.duration, True), t[label])
