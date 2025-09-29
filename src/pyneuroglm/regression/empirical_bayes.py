@@ -1,3 +1,5 @@
+"""Empirical Bayes utilities for GLM evidence approximation."""
+
 import numpy as np
 
 
@@ -9,7 +11,7 @@ def log_evidence(param, hyperparam, loglik, llargs, logprior, lpargs):
     ----------
     param : numpy.ndarray of shape (m,)
         Regression weights (MAP estimate).
-    hyperparam : numpy.ndarray of shape (p,)
+    hyperparam : Any
         Hyperparameters for the prior.
     loglik : callable
         Function that returns ``(L, dL, ddL)``, the log-likelihood and its first and second derivatives at the given parameters.

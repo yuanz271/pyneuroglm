@@ -1,3 +1,5 @@
+"""scikit-learn-compatible wrappers around pyneuroglm regressors."""
+
 # https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/linear_model/_linear_loss.py#L207
 # L2 penalty term l2_reg_strength/2 *||w||_2^2.
 
@@ -54,8 +56,10 @@ def make_loglikelihood(X, y):
     callable
         Log-likelihood function that takes weights as input.
     """
+
     def loglik(w, *args):
         return poisson_loglik(w, X, y, _poisson_link_fun)
+
     return loglik
 
 
@@ -166,14 +170,38 @@ class BayesianGLMRegressor(RegressorMixin, BaseEstimator):
     uncertainty estimates for predictions.
     """
 
-    def __init__(self, alpha=1.0, dist='poisson', fit_intercept=True,
-                 initialize='zero', init_kwargs=None):
-        if dist not in ['poisson']:
-            raise ValueError(f"Unsupported distribution: {dist}. "
-                           f"Supported distributions: ['poisson']")
-        if initialize not in ['zero', 'lstsq']:
-            raise ValueError(f"Unsupported initialization: {initialize}. "
-                           f"Supported methods: ['zero', 'lstsq']")
+    def __init__(
+        self, alpha=1.0, dist="poisson", fit_intercept=True, initialize="zero", init_kwargs=None
+    ):
+        """
+        Initialize the regressor with prior strength and optimization choices.
+
+        Parameters
+        ----------
+        alpha : float, default=1.0
+            Regularization strength for the ridge prior applied to the weights.
+        dist : {'poisson'}, default='poisson'
+            Response distribution to fit. Currently only Poisson is supported.
+        fit_intercept : bool, default=True
+            If True, prepend a bias column to the design matrix and fit an intercept.
+        initialize : {'zero', 'lstsq'}, default='zero'
+            Strategy used to initialize the weight vector before optimization.
+        init_kwargs : dict or None, optional
+            Extra keyword arguments forwarded to the initialization routine.
+
+        Raises
+        ------
+        ValueError
+            If an unsupported distribution or initialization method is supplied.
+        """
+        if dist not in ["poisson"]:
+            raise ValueError(
+                f"Unsupported distribution: {dist}. Supported distributions: ['poisson']"
+            )
+        if initialize not in ["zero", "lstsq"]:
+            raise ValueError(
+                f"Unsupported initialization: {initialize}. Supported methods: ['zero', 'lstsq']"
+            )
 
         self.alpha = alpha
         self.dist = dist
@@ -218,9 +246,9 @@ class BayesianGLMRegressor(RegressorMixin, BaseEstimator):
         Cinv = ridge_Cinv(self.alpha, n_params, self.fit_intercept)
 
         # Map initialization string to function
-        if self.initialize == 'zero':
+        if self.initialize == "zero":
             init_func = initialize_zero
-        elif self.initialize == 'lstsq':
+        elif self.initialize == "lstsq":
             init_func = initialize_lstsq
         else:
             raise ValueError(f"Unknown initialization method: {self.initialize}")
@@ -230,11 +258,7 @@ class BayesianGLMRegressor(RegressorMixin, BaseEstimator):
 
         # Fit the model using get_posterior_weights
         w, sd, invH = get_posterior_weights(
-            X_, y, Cinv,
-            dist=self.dist,
-            cvfolds=None,
-            initialize=init_func,
-            init_kwargs=init_kwargs
+            X_, y, Cinv, dist=self.dist, cvfolds=None, initialize=init_func, init_kwargs=init_kwargs
         )
 
         # Store results
@@ -276,8 +300,10 @@ class BayesianGLMRegressor(RegressorMixin, BaseEstimator):
         X = check_array(X, accept_sparse=False)
 
         if X.shape[1] != self.n_features_in_:
-            raise ValueError(f"X has {X.shape[1]} features, but this regressor "
-                           f"was fitted with {self.n_features_in_} features.")
+            raise ValueError(
+                f"X has {X.shape[1]} features, but this regressor "
+                f"was fitted with {self.n_features_in_} features."
+            )
 
         # Compute linear predictor
         eta = X @ self.coef_
@@ -285,13 +311,12 @@ class BayesianGLMRegressor(RegressorMixin, BaseEstimator):
             eta += self.intercept_
 
         # Apply inverse link function based on distribution
-        if self.dist == 'poisson':
+        if self.dist == "poisson":
             y_pred = np.exp(eta)
         else:
             raise NotImplementedError(f"Prediction for distribution '{self.dist}' not implemented")
 
         return y_pred
-
 
     def score(self, X, y, sample_weight=None):
         """
@@ -335,7 +360,10 @@ class BayesianGLMRegressor(RegressorMixin, BaseEstimator):
             if "positive definite" in str(e):
                 # Return a fallback score based on likelihood only
                 import warnings
-                warnings.warn(f"Log evidence computation failed ({e}). Using likelihood-based fallback score.")
+
+                warnings.warn(
+                    f"Log evidence computation failed ({e}). Using likelihood-based fallback score."
+                )
 
                 # Compute log-likelihood as fallback
                 y_pred = self.predict(X)

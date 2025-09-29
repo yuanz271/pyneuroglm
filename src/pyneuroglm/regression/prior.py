@@ -43,7 +43,7 @@ def ridge_Cinv(rho, nx, intercept_prepended=False):
     Returns
     -------
     numpy.ndarray
-        Diagonal matrix of shape (nx, nx) or (nx+1, nx+1) if add_constant is True.
+        Diagonal matrix of shape (nx, nx) or (nx+1, nx+1) if intercept_prepended is True.
     """
     d = np.ones(nx)
     if intercept_prepended:
@@ -71,10 +71,6 @@ def gaussian_zero_mean_inv(w, Cinv):
         Gradient of the log-prior.
     ddp : numpy.ndarray
         Hessian (inverse covariance matrix).
-
-    Notes
-    -----
-    If `w` has more or fewer elements than `Cinv` (i.e., includes an intercept), the first element is ignored.
     """
     # check intercept
     assert (

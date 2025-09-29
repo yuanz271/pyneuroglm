@@ -1,3 +1,5 @@
+"""Experiment data structures for assembling GLM design matrices."""
+
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -22,6 +24,7 @@ class VariableType(StrEnum):
     SPIKE : str
         Spike train variable.
     """
+
     CONTINUOUS = "continuous"
     TIMING = "timing"
     VALUE = "value"
@@ -46,6 +49,7 @@ class Variable:
     timing : float or None, optional
         Timing value for value variables (optional).
     """
+
     label: str
     description: str
     type: str
@@ -75,13 +79,14 @@ class Experiment:
     time_unit_to_ms_ratio : float, optional
         Conversion ratio from time_unit to milliseconds.
     """
+
     time_unit: str
     binsize: float | int
     eid: Any
     meta: dict = field(default_factory=dict)
     variables: dict[Any, Variable] = field(default_factory=dict)
     trials: OrderedDict = field(default_factory=OrderedDict)
-    time_unit_to_ms_ratio: float = field(init=False, default=1.)
+    time_unit_to_ms_ratio: float = field(init=False, default=1.0)
 
     def __post_init__(self):
         """
@@ -100,7 +105,7 @@ class Experiment:
             case _:
                 raise ValueError(f"Undefined time unit {self.time_unit}")
 
-    def binfun(self, t: ArrayLike, right_edge: bool=False) -> Any:
+    def binfun(self, t: ArrayLike, right_edge: bool = False) -> Any:
         """
         Convert event time(s) to bin index or number of bins.
 
@@ -133,7 +138,7 @@ class Experiment:
 
         if np.ndim(idx) == 0:
             idx = idx.item()
-        
+
         return idx
 
     def register_continuous(self, label, description, ndim=1):
@@ -149,8 +154,7 @@ class Experiment:
         ndim : int, optional
             Number of dimensions (default 1).
         """
-        self.variables[label] = Variable(label, description, 'continuous',
-                                         ndim)
+        self.variables[label] = Variable(label, description, "continuous", ndim)
 
     def register_timing(self, label, description):
         """
@@ -163,7 +167,7 @@ class Experiment:
         description : str
             Description of the variable.
         """
-        self.variables[label] = Variable(label, description, 'timing')
+        self.variables[label] = Variable(label, description, "timing")
 
     def register_spike_train(self, label, description):
         """
@@ -193,7 +197,7 @@ class Experiment:
         timing : float or None, optional
             Timing value for the variable.
         """
-        v = Variable(label, description, 'value', ndim)
+        v = Variable(label, description, "value", ndim)
         v.timing = timing
         self.variables[label] = v
 
@@ -215,15 +219,15 @@ class Experiment:
         """
         for label, v in trial.variables:
             if label not in self.variables:
-                raise ValueError(f'Unregistered variable: {label}')
-                        
+                raise ValueError(f"Unregistered variable: {label}")
+
             match self.variables[label].type:
                 case VariableType.CONTINUOUS:
                     assert self.binfun(trial.duration, True) == v.shape[0]
                 case VariableType.TIMING:
                     assert v.ndim == 1
-                    assert min(v) >= 0. and max(v) < trial.duration
-                
+                    assert min(v) >= 0.0 and max(v) < trial.duration
+
         self.trials[trial.tid] = trial
 
 
@@ -241,6 +245,7 @@ class Trial:
     _variables : dict, optional
         Dictionary of variable label to data (set automatically).
     """
+
     tid: Any
     duration: float
     _variables: dict = field(init=False, default_factory=dict)

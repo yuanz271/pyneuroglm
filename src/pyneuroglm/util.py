@@ -1,3 +1,5 @@
+"""Utility helpers for data preprocessing and normalization."""
+
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
