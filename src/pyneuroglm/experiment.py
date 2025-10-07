@@ -225,8 +225,8 @@ class Experiment:
                 case VariableType.CONTINUOUS:
                     assert self.binfun(trial.duration, True) == v.shape[0]
                 case VariableType.TIMING:
-                    assert v.ndim == 1
-                    assert min(v) >= 0.0 and max(v) < trial.duration
+                    if np.ndim(v) > 0:
+                        assert min(v) >= 0.0 and max(v) < trial.duration
 
         self.trials[trial.tid] = trial
 
