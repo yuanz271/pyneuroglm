@@ -58,6 +58,21 @@ def make_loglikelihood(X, y):
     """
 
     def loglik(w, *args):
+        """
+        Compute the Poisson log-likelihood for weight vector `w`.
+
+        Parameters
+        ----------
+        w : array-like of shape (n_features,)
+            Weight vector at which to evaluate the log-likelihood.
+        *args
+            Ignored additional arguments (for sklearn compatibility).
+
+        Returns
+        -------
+        float
+            Log-likelihood value.
+        """
         return poisson_loglik(w, X, y, _poisson_link_fun)
 
     return loglik

@@ -80,6 +80,21 @@ def make_smooth_temporal_basis(
     """
 
     def rcos(x, period):
+        """
+        Evaluate a single raised-cosine bump at locations `x`.
+
+        Parameters
+        ----------
+        x : ndarray
+            Sample locations where the basis is evaluated.
+        period : float
+            Width (period) of the raised cosine.
+
+        Returns
+        -------
+        ndarray
+            Raised-cosine values with the same shape as `x`.
+        """
         return np.where(np.abs(x / period) < 0.5, np.cos(x * 2 * np.pi / period) * 0.5 + 0.5, 0)
 
     n_bins = binfun(duration, True)  # total number of bins
@@ -335,9 +350,35 @@ def make_nonlinear_raised_cos(n_bases, binsize_in_ms, end_points_in_ms, nl_offse
 
     # Nonlinearity and its inverse
     def nlin(x):
+        """
+        Apply the log-based nonlinear warping used for spacing basis centers.
+
+        Parameters
+        ----------
+        x : ndarray or float
+            Input values in milliseconds.
+
+        Returns
+        -------
+        ndarray or float
+            Log-transformed values on the warped axis.
+        """
         return np.log(x + 1e-20)
 
     def invnl(y):
+        """
+        Invert the nonlinear warping applied by `nlin`.
+
+        Parameters
+        ----------
+        y : ndarray or float
+            Warped values produced by `nlin`.
+
+        Returns
+        -------
+        ndarray or float
+            Values in the original (millisecond) domain.
+        """
         return np.exp(y) - 1e-20
 
     # Map end points through log-stretch

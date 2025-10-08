@@ -49,7 +49,25 @@ def poisson(w, X, y, Cinv, nlfun, inds):
 
 def bernoulli(w, X, y, Cinv, inds):
     """
-    Raise NotImplementedError for Bernoulli log-posterior.
+    Placeholder for the Bernoulli log-posterior with Gaussian prior.
+
+    Parameters
+    ----------
+    w : array-like
+        Regression weights.
+    X : array-like
+        Design matrix.
+    y : array-like
+        Observed binary outcomes.
+    Cinv : array-like
+        Inverse covariance matrix for the Gaussian prior.
+    inds : array-like
+        Indices selecting rows of `X` and `y` to include.
+
+    Returns
+    -------
+    tuple[float, numpy.ndarray, numpy.ndarray]
+        Tuple containing the log-posterior, gradient, and Hessian.
 
     Raises
     ------

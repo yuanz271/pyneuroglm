@@ -50,6 +50,10 @@ class DesignMatrix:
         """
         The compiled design matrix.
 
+        Parameters
+        ----------
+        None
+
         Returns
         -------
         numpy.ndarray
@@ -70,6 +74,10 @@ class DesignMatrix:
         """
         Total effective dimension (number of columns) of the design matrix.
 
+        Parameters
+        ----------
+        None
+
         Returns
         -------
         int
@@ -85,6 +93,10 @@ class DesignMatrix:
         ----------
         bias : bool, optional
             Whether to include the bias column. Default is True.
+
+        Returns
+        -------
+        None
 
         Raises
         ------
@@ -120,6 +132,10 @@ class DesignMatrix:
             Offset to apply to the covariate (in time units).
         condition : Callable or None, optional
             Optional function to filter trials for this covariate.
+
+        Returns
+        -------
+        None
         """
         self.covariates[label] = Covariate(
             self, label, description, handler, basis, offset, condition
@@ -139,6 +155,10 @@ class DesignMatrix:
             Description of the covariate.
         **kwargs
             Additional arguments for Covariate.
+
+        Returns
+        -------
+        None
         """
         binfun = self.experiment.binfun
         if stim_label is None:
@@ -166,6 +186,10 @@ class DesignMatrix:
             Description of the covariate.
         **kwargs
             Additional arguments for Covariate.
+
+        Returns
+        -------
+        None
         """
         binfun = self.experiment.binfun
         if stim_label is None:
@@ -193,6 +217,10 @@ class DesignMatrix:
             Description of the covariate.
         basis : Basis or None, optional
             Basis object for the spike covariate, or None for default.
+
+        Returns
+        -------
+        None
         """
         if basis is None:
             basis = make_nonlinear_raised_cos(
@@ -230,6 +258,10 @@ class DesignMatrix:
             Description of the covariate.
         **kwargs
             Additional arguments for Covariate.
+
+        Returns
+        -------
+        None
         """
         self.covariates[label] = Covariate(self, label, description, raw_stim(label), **kwargs)
 
@@ -249,6 +281,10 @@ class DesignMatrix:
             Description of the covariate.
         **kwargs
             Additional arguments for Covariate.
+
+        Returns
+        -------
+        None
         """
         binfun = self.experiment.binfun
         covar = Covariate(
@@ -417,6 +453,22 @@ class DesignMatrix:
         binsize = self.experiment.binsize
 
         def covar_weight(covar: Covariate, w):
+            """
+            Combine basis weights with temporal kernels for a single covariate.
+
+            Parameters
+            ----------
+            covar : Covariate
+                Covariate metadata that includes the associated basis and offset.
+            w : numpy.ndarray
+                Flat weight vector segment corresponding to the covariate.
+
+            Returns
+            -------
+            dict
+                Dictionary with keys `label`, `tr`, and `data` describing the
+                reconstructed time-domain filters.
+            """
             basis = covar.basis
 
             if basis is None:
@@ -479,6 +531,10 @@ class DesignMatrix:
         ----------
         column_indices : array-like or None, optional
             Indices of columns to z-score. If None, all columns are z-scored.
+
+        Returns
+        -------
+        None
         """
         X = self.X
 

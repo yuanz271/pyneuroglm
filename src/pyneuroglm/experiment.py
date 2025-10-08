@@ -153,6 +153,10 @@ class Experiment:
             Description of the variable.
         ndim : int, optional
             Number of dimensions (default 1).
+
+        Returns
+        -------
+        None
         """
         self.variables[label] = Variable(label, description, "continuous", ndim)
 
@@ -166,6 +170,10 @@ class Experiment:
             Variable label.
         description : str
             Description of the variable.
+
+        Returns
+        -------
+        None
         """
         self.variables[label] = Variable(label, description, "timing")
 
@@ -179,6 +187,10 @@ class Experiment:
             Variable label.
         description : str
             Description of the variable.
+
+        Returns
+        -------
+        None
         """
         self.variables[label] = Variable(label, description, "spike")
 
@@ -196,6 +208,10 @@ class Experiment:
             Number of dimensions (default 1).
         timing : float or None, optional
             Timing value for the variable.
+
+        Returns
+        -------
+        None
         """
         v = Variable(label, description, "value", ndim)
         v.timing = timing
@@ -209,6 +225,10 @@ class Experiment:
         ----------
         trial : Trial
             Trial object to add.
+
+        Returns
+        -------
+        None
 
         Raises
         ------
@@ -283,6 +303,10 @@ class Trial:
     def variables(self):
         """
         Get all variable (label, value) pairs for this trial.
+
+        Parameters
+        ----------
+        None
 
         Returns
         -------
