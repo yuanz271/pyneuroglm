@@ -2,7 +2,7 @@
 name = "pyneuroglm"
 version = "2025.7.18"
 description = "A Python port of neuroGLM"
-readme = "README.rst"
+readme = "README.md"
 authors = [
     { name = "yuanz", email = "yuanz271@gmail.com" }
 ]
