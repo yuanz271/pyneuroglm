@@ -1,42 +1,118 @@
-# Agent Operating Guide
+# PROJECT KNOWLEDGE BASE
 
-## 1. Project Orientation
-- Core library lives in `src/pyneuroglm/` with key modules (`basis.py`, `design.py`, `experiment.py`, `util.py`, `regression/`).
-- Test suite resides in `tests/`; fixtures such as `basis.npy` sit alongside their tests.
-- Examples and walkthroughs are under `example/` and `tutorial.md`.
-- Build metadata is managed by `pyproject.toml` (Python ≥3.11, `uv_build` backend) and `uv.lock`.
+**Generated:** 2026-01-17
+**Commit:** 5e0d778
+**Branch:** main
 
-## 2. Environment & Command Rules
-- Prefer `uv sync --group dev` for local setup; `pip install -e .` plus `pytest matplotlib` is an alternative.
-- Use `uv run pytest` (optionally `-q`) or plain `pytest` for test runs; target a single test with `pytest tests/test_pyneuroglm.py::test_experiment -q`.
-- Build artifacts with `uv build` (or `python -m build`).
-- Shell invocations must go through `["bash", "-lc", "<cmd>"]` with `workdir` set explicitly.
-- Reach for `rg`/`rg --files` when searching; avoid destructive commands (`git reset --hard`, etc.) unless the user demands them.
-- Sandbox is `workspace-write`, network is restricted, approval policy is `on-request`; escalate only with a clear justification.
+## OVERVIEW
 
-## 3. Workflow Expectations
-- Skip formal plans for trivial edits, otherwise note every multi-step effort via the planner (no single-step plans).
-- Never assume; ask if instructions conflict. Stop immediately if unexpected repo changes appear.
-- Use `apply_patch` for focused edits; reserve scripted replacements or generated files for bulk updates.
-- Default to ASCII, add comments sparingly, and maintain user edits you did not originate.
+Python port of [neuroGLM](https://github.com/pillowlab/neuroGLM) for building GLMs of neuronal spike trains. Core stack: NumPy, SciPy, scikit-learn. Python ≥3.11.
 
-## 4. Coding Standards
-- Follow PEP 8 conventions: 4-space indentation, ~88–100 char lines.
-- Naming: functions/variables in `snake_case`, classes in `CapWords`, modules lower_snake.
-- Favor absolute imports (`from pyneuroglm.basis import ...`).
-- Add type hints for public APIs and document them with NumPy-style docstrings (`Parameters`, `Returns`, `Raises`, `Examples`).
+## STRUCTURE
 
-## 5. Testing Discipline
-- Keep tests deterministic; seed randomness where applicable.
-- Mirror source layout for new test modules and ensure they run quickly.
-- Optional coverage command: `coverage run -m pytest && coverage html`.
+```
+pyneuroglm/
+├── src/pyneuroglm/        # Core library
+│   ├── __init__.py        # Public API: Experiment, Trial, Variable, DesignMatrix, Covariate
+│   ├── basis.py           # Temporal basis functions (raised cosine, boxcar)
+│   ├── design.py          # Design matrix construction (681 lines, largest module)
+│   ├── experiment.py      # Trial/experiment abstractions
+│   ├── util.py            # zscore helper
+│   └── regression/        # Bayesian GLM fitting (NO __init__.py - namespace pkg)
+│       ├── sklearn.py     # BayesianGLMRegressor (scikit-learn API)
+│       ├── posterior.py   # Posterior computation (poisson, bernoulli)
+│       ├── likelihood.py  # Log-likelihood functions
+│       ├── prior.py       # Prior specification (ridge, gaussian)
+│       ├── optim.py       # Objective class for optimization
+│       ├── empirical_bayes.py  # Log evidence computation
+│       └── nonlinearity.py     # exp() activation
+├── tests/                 # Single test file + MATLAB fixture
+├── example/               # tutorial.ipynb + MATLAB reference .mat files
+└── tutorial.md            # Walkthrough documentation
+```
 
-## 6. Change Management
-- Commit messages: imperative, scope-first (e.g., `basis: fix raised-cosine edge case`).
-- Commit body should capture problem, approach, and trade-offs.
-- PRs: stay scoped, link issues, list validation commands/data, attach before/after visuals for behavioral changes.
-- Update docs (`tutorial.md`, docstrings) and tests alongside feature work.
+## WHERE TO LOOK
 
-## 7. Security & Data Hygiene
-- Keep large binaries out of version control; stash reference data in `example/`.
-- Never embed credentials or machine-specific paths.
+| Task | Location | Notes |
+|------|----------|-------|
+| Define experiment structure | `experiment.py` | `Experiment`, `Trial`, `Variable` classes |
+| Build design matrix | `design.py` | `DesignMatrix.add_covariate_*` methods |
+| Create temporal basis | `basis.py` | `make_smooth_temporal_basis()`, `make_nonlinear_raised_cos()` |
+| Fit GLM | `regression/sklearn.py` | `BayesianGLMRegressor` (sklearn-compatible) |
+| Compute posterior | `regression/posterior.py` | `get_posterior_weights()` |
+| Run tests | `tests/test_pyneuroglm.py` | 7 smoke tests, MATLAB validation |
+| Usage examples | `tutorial.md`, `example/tutorial.ipynb` | End-to-end walkthrough |
+
+## CODE MAP
+
+| Symbol | Type | Location | Role |
+|--------|------|----------|------|
+| `Experiment` | Class | experiment.py:60 | Container for trials + variable registry |
+| `Trial` | Class | experiment.py:254 | Per-trial data storage |
+| `DesignMatrix` | Class | design.py:25 | Builds feature matrices from covariates |
+| `Covariate` | Class | design.py:556 | Defines how variables map to features |
+| `Basis` | Dataclass | basis.py:19 | Stores basis matrix + reconstruction params |
+| `BayesianGLMRegressor` | Class | regression/sklearn.py:134 | sklearn-compatible GLM with empirical Bayes |
+| `make_smooth_temporal_basis` | Func | basis.py:51 | Creates raised-cosine basis |
+| `conv_basis` | Func | basis.py:178 | Convolves signal with basis |
+
+## CONVENTIONS
+
+### Deviations from Standard
+- **No `__init__.py` in `regression/`**: Namespace package. Import modules directly: `from pyneuroglm.regression.sklearn import BayesianGLMRegressor`
+- **Build backend**: Uses `uv_build` (not setuptools/hatch). Prefer `uv sync --group dev` over pip
+- **Type imports**: Modern style `from collections.abc import Callable` (not `typing.Callable`)
+
+### Coding Style
+- PEP 8 with 100-char lines (`ruff` enforced)
+- NumPy docstrings (`Parameters`, `Returns`, `Raises`, `Examples` sections)
+- 4-space indent, `snake_case` functions, `CapWords` classes
+- Absolute imports: `from pyneuroglm.basis import ...`
+
+### Testing
+- Single test file `tests/test_pyneuroglm.py` (smoke tests)
+- MATLAB reference fixture: `tests/basis.npy`
+- Tests NOT seeded - uses `np.random.randn()` directly
+- Run: `uv run pytest` or `pytest tests/test_pyneuroglm.py -q`
+
+## ANTI-PATTERNS (THIS PROJECT)
+
+- **DO NOT** add `__init__.py` to `regression/` without updating all imports
+- **DO NOT** use `pip install` for dev setup - use `uv sync --group dev`
+- **DO NOT** commit large binaries - stash reference data in `example/`
+- **NEVER** embed machine-specific paths or credentials
+- **NEVER** suppress type errors with `as any` or `# type: ignore`
+
+## UNIQUE STYLES
+
+- **Basis reconstruction**: `Basis` dataclass stores `func` + `kwargs` to regenerate itself: `basis.func(**basis.kwargs)`
+- **MATLAB compatibility**: `basis.npy` fixture loaded with `allow_pickle=True` for dtype preservation
+- **Design matrix**: Lazy compilation via `DesignMatrix.compile_design_matrix()`
+- **Variable types**: Enum-like `VariableType` with CONTINUOUS, TIMING, VALUE, SPIKE
+
+## COMMANDS
+
+```bash
+# Setup
+uv sync --group dev              # Install all dependencies
+
+# Test
+uv run pytest                    # Run full test suite
+uv run pytest -q                 # Quiet mode
+pytest tests/test_pyneuroglm.py::test_experiment  # Single test
+
+# Build
+uv build                         # Create distribution
+
+# Lint
+ruff check .                     # Check linting
+ruff format .                    # Format code
+```
+
+## NOTES
+
+- **Port of MATLAB neuroGLM**: Some naming/patterns mirror original. See `tutorial.md` for mapping.
+- **Binsize matters**: `Experiment.binfun()` converts time→bins. Ensure consistent time units.
+- **Pre-commit hooks**: `ruff`, `ruff-format`, `pydocstyle --convention=numpy` configured in `.pre-commit-config.yaml`
+- **Test fixture**: `basis.npy` validates `make_nonlinear_raised_cos()` against MATLAB output. Note: `assert np.allclose(basis.B[:-1], B)` - size differs by 1.
+- **Stale bytecode**: `__pycache__` may contain orphaned `.pyc` for deleted modules (`glm.py`, `negloglik.py`). Safe to delete `__pycache__` dirs if issues arise.
