@@ -121,13 +121,16 @@ This document enumerates those differences explicitly.
 | Test Type | MATLAB | Python |
 |-----------|--------|--------|
 | Basis function parity | Yes | Yes |
-| Design matrix parity | Yes | No |
-| Posterior equivalence | Yes | No |
-| End-to-end reproduction | Yes | No |
+| Design matrix parity | Yes | Yes |
+| Likelihood parity (log-lik, grad, Hessian) | Yes | Yes |
+| Prior parity | Yes | Yes |
+| MAP regression parity | Yes | Yes |
+| End-to-end reproduction | Yes | Partial |
 
-**Implications:**
-- Numerical equivalence is guaranteed for basis functions
-- Full model equivalence is **not yet guaranteed**
+**Current State (v0.2+):**
+- Numerical equivalence is verified for: basis functions, design matrix, Poisson likelihood, ridge prior, and MAP weights
+- Tests use MATLAB `.mat` fixtures (`exampleDM.mat`, `exampleData.mat`) for validation
+- Tolerances: log-likelihood ~1e-8, gradient ~1e-8, Hessian ~1e-7
 
 ---
 
@@ -181,7 +184,10 @@ MATLAB implementation is more optimized for:
 | Multiple nonlinearities | Yes | No |
 | Empirical Bayes | Yes | Yes |
 | Basis parity tests | Yes | Yes |
-| End-to-end parity tests | Yes | No |
+| Design matrix parity tests | Yes | Yes |
+| Likelihood/prior parity tests | Yes | Yes |
+| MAP regression parity tests | Yes | Yes |
+| End-to-end parity tests | Yes | Partial |
 
 ---
 
@@ -204,7 +210,21 @@ MATLAB implementation is more optimized for:
 
 ---
 
-## 11. Planned Improvements
+## 11. Completed Parity Improvements
+
+The following parity tests have been implemented:
+
+- [x] Design matrix parity (`test_design_matrix_parity.py`)
+- [x] Poisson likelihood parity (log-lik, gradient, Hessian)
+- [x] Ridge prior parity
+- [x] MAP regression parity
+
+**Bug Fixes (discovered during parity audit):**
+- Hessian formula in `likelihood.py` (commit `8ea3fde`)
+- `Cinv` dimension mismatch when `fit_intercept=True` (commit `05b270e`)
+- Optimizer tolerance settings for Newton-CG (commit `05b270e`)
+
+## 12. Planned Improvements
 
 The following improvements are planned to increase parity:
 
@@ -212,11 +232,12 @@ The following improvements are planned to increase parity:
 - [ ] Constant column removal
 - [ ] AR(1) temporal priors
 - [ ] Explicit group index bookkeeping
-- [ ] MATLAB `.mat` parity regression tests
+- [ ] Empirical Bayes parity test
+- [ ] End-to-end reproduction test (full tutorial workflow)
 
 ---
 
-## 12. Contributing
+## 13. Contributing
 
 Contributions toward MATLAB parity are welcome. Priority areas:
 
