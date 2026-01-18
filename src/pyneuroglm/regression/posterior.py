@@ -49,7 +49,7 @@ def poisson(w, X, y, Cinv, nlfun, inds):
 
 def bernoulli(w, X, y, Cinv, inds):
     """
-    Placeholder for the Bernoulli log-posterior with Gaussian prior.
+    Compute the Bernoulli log-posterior with Gaussian prior (not implemented).
 
     Parameters
     ----------
@@ -259,6 +259,7 @@ def get_posterior_weights(
             method="Newton-CG",
             jac=obj.gradient,
             hess=obj.hessian,
+            options={"xtol": 1e-10, "maxiter": 1000},
         )
         if not opt.success:
             warnings.warn("Optimization not succeed")

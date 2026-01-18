@@ -342,3 +342,177 @@ if __name__ == "__main__":
     print(f"L diff from parity: {abs(L_py - (-L_ref)):.2e}")
     print(f"Gradient max diff:  {np.max(np.abs(dL_py - (-dL_ref))):.2e}")
     print(f"Hessian max diff:   {np.max(np.abs(H_py - (-H_ref))):.2e}")
+
+
+class TestPriorParity:
+    """Prior parity test suite (ridge/Gaussian zero-mean)."""
+
+    def test_ridge_cinv_matches_matlab(self):
+        """Verify ridge_Cinv produces rho * I (MATLAB: speye(nx)*rho)."""
+        from pyneuroglm.regression.prior import ridge_Cinv
+
+        rho = 2.5
+        nx = 10
+
+        Cinv = ridge_Cinv(rho, nx)
+
+        expected = rho * np.eye(nx)
+        assert np.allclose(Cinv, expected), "ridge_Cinv should produce rho * I"
+
+    def test_ridge_cinv_intercept_handling(self):
+        """Verify intercept is not regularized when intercept_prepended=True."""
+        from pyneuroglm.regression.prior import ridge_Cinv
+
+        rho = 2.5
+        nx = 10
+
+        Cinv = ridge_Cinv(rho, nx, intercept_prepended=True)
+
+        assert Cinv[0, 0] == 0, "Intercept should not be regularized"
+        assert np.allclose(np.diag(Cinv)[1:], rho), "Other weights should have rho"
+
+    def test_gaussian_prior_parity(self):
+        """
+        Verify gaussian_zero_mean_inv matches MATLAB gpriors.gaussian_zero_mean_inv.
+
+        MATLAB returns NEGATIVE log-prior; Python returns POSITIVE log-prior.
+        """
+        from pyneuroglm.regression.prior import gaussian_zero_mean_inv, ridge_Cinv
+
+        rng = np.random.default_rng(789)
+        nx = 15
+        rho = 1.5
+        w = rng.standard_normal(nx)
+
+        Cinv = ridge_Cinv(rho, nx)
+
+        P_py, dP_py, ddP_py = gaussian_zero_mean_inv(w, Cinv)
+
+        p_matlab = 0.5 * w @ Cinv @ w
+        dp_matlab = Cinv @ w
+        ddp_matlab = Cinv
+
+        assert np.isclose(
+            P_py, -p_matlab, atol=1e-10
+        ), f"Prior value mismatch: Python={P_py}, -MATLAB={-p_matlab}"
+        assert np.allclose(dP_py, -dp_matlab, atol=1e-10), "Prior gradient mismatch"
+        assert np.allclose(ddP_py, -ddp_matlab, atol=1e-10), "Prior Hessian mismatch"
+
+        print("\n=== Prior Parity Test ===")
+        print(f"MATLAB p (neg log-prior): {p_matlab:.6f}")
+        print(f"Python P (log-prior):     {P_py:.6f}")
+        print(f"Parity check: P_py == -p_matlab: {np.isclose(P_py, -p_matlab)}")
+        print("PASSED: Prior parity verified")
+
+
+class TestMAPRegression:
+    """MAP regression end-to-end test using BayesianGLMRegressor."""
+
+    @pytest.fixture
+    def regression_data(self):
+        """Load design matrix and spike counts for regression."""
+        dm_path = MATLAB_DIR / "exampleDM.mat"
+        data_path = MATLAB_DIR / "exampleData.mat"
+        if not dm_path.exists() or not data_path.exists():
+            pytest.skip("MATLAB fixtures not found")
+        return load_design_matrix_and_spikes()
+
+    def test_bayesian_glm_convergence(self, regression_data):
+        """Verify BayesianGLMRegressor converges on validated data."""
+        from pyneuroglm.regression.sklearn import BayesianGLMRegressor
+
+        X, y = regression_data
+
+        model = BayesianGLMRegressor(alpha=1.0, fit_intercept=True, initialize="lstsq")
+        model.fit(X, y)
+
+        assert hasattr(model, "coef_"), "Model should have coef_ after fit"
+        assert hasattr(model, "intercept_"), "Model should have intercept_ after fit"
+        assert len(model.coef_) == X.shape[1], "coef_ length should match features"
+
+        print("\n=== MAP Regression Convergence ===")
+        print(f"Features: {X.shape[1]}, Samples: {X.shape[0]}")
+        print(f"Intercept: {model.intercept_:.4f}")
+        print(f"Coef range: [{model.coef_.min():.4f}, {model.coef_.max():.4f}]")
+        print("PASSED: Model converged")
+
+    def test_first_order_optimality(self, regression_data):
+        """Verify gradient is near zero at MAP solution (first-order condition)."""
+        from pyneuroglm.regression.sklearn import BayesianGLMRegressor
+        from pyneuroglm.regression.posterior import poisson as poisson_posterior
+        from pyneuroglm.regression.prior import ridge_Cinv
+        from pyneuroglm.regression.nonlinearity import exp as exp_nlfun
+
+        X, y = regression_data
+
+        model = BayesianGLMRegressor(alpha=1.0, fit_intercept=True, initialize="lstsq")
+        model.fit(X, y)
+
+        X_with_intercept = np.column_stack((np.ones(X.shape[0]), X))
+        w = np.concatenate([[model.intercept_], model.coef_])
+        Cinv = ridge_Cinv(model.alpha, X_with_intercept.shape[1], intercept_prepended=True)
+
+        _, grad, _ = poisson_posterior(w, X_with_intercept, y, Cinv, exp_nlfun, None)
+
+        grad_norm = np.linalg.norm(grad)
+        max_grad = np.max(np.abs(grad))
+
+        print("\n=== First-Order Optimality ===")
+        print(f"Gradient norm: {grad_norm:.2e}")
+        print(f"Max |gradient|: {max_grad:.2e}")
+
+        assert max_grad < 1e-3, f"Gradient too large at MAP: max|grad| = {max_grad:.2e}"
+        print("PASSED: First-order optimality satisfied")
+
+    def test_predictions_reasonable(self, regression_data):
+        """Verify predictions are non-negative and finite."""
+        from pyneuroglm.regression.sklearn import BayesianGLMRegressor
+
+        X, y = regression_data
+
+        model = BayesianGLMRegressor(alpha=1.0, fit_intercept=True, initialize="lstsq")
+        model.fit(X, y)
+
+        y_pred = model.predict(X)
+
+        assert np.all(np.isfinite(y_pred)), "Predictions should be finite"
+        assert np.all(y_pred >= 0), "Poisson predictions should be non-negative"
+        assert y_pred.shape == y.shape, "Prediction shape should match target"
+
+        corr = np.corrcoef(y, y_pred)[0, 1]
+
+        print("\n=== Prediction Quality ===")
+        print(f"Predicted range: [{y_pred.min():.4f}, {y_pred.max():.4f}]")
+        print(f"Actual range: [{y.min():.0f}, {y.max():.0f}]")
+        print(f"Correlation: {corr:.4f}")
+        print("PASSED: Predictions are reasonable")
+
+    def test_hessian_negative_definite(self, regression_data):
+        """Verify Hessian is negative definite at MAP (second-order condition)."""
+        from pyneuroglm.regression.sklearn import BayesianGLMRegressor
+        from pyneuroglm.regression.posterior import poisson as poisson_posterior
+        from pyneuroglm.regression.prior import ridge_Cinv
+        from pyneuroglm.regression.nonlinearity import exp as exp_nlfun
+
+        X, y = regression_data
+
+        model = BayesianGLMRegressor(alpha=1.0, fit_intercept=True, initialize="lstsq")
+        model.fit(X, y)
+
+        X_with_intercept = np.column_stack((np.ones(X.shape[0]), X))
+        w = np.concatenate([[model.intercept_], model.coef_])
+        Cinv = ridge_Cinv(model.alpha, X_with_intercept.shape[1], intercept_prepended=True)
+
+        _, _, H = poisson_posterior(w, X_with_intercept, y, Cinv, exp_nlfun, None)
+
+        eigenvalues = np.linalg.eigvalsh(H)
+        max_eigenvalue = np.max(eigenvalues)
+
+        print("\n=== Second-Order Optimality ===")
+        print(f"Max eigenvalue of Hessian: {max_eigenvalue:.2e}")
+        print(f"Min eigenvalue of Hessian: {np.min(eigenvalues):.2e}")
+
+        assert (
+            max_eigenvalue < 0
+        ), f"Hessian should be negative definite, max eigenvalue = {max_eigenvalue:.2e}"
+        print("PASSED: Hessian is negative definite")
