@@ -516,3 +516,179 @@ class TestMAPRegression:
             max_eigenvalue < 0
         ), f"Hessian should be negative definite, max eigenvalue = {max_eigenvalue:.2e}"
         print("PASSED: Hessian is negative definite")
+
+
+class TestEmpiricalBayes:
+    """
+    Empirical Bayes (Laplace approximation) log-evidence tests.
+
+    Note: Python uses Laplace approximation for log-evidence, while MATLAB uses
+    cross-validation. These are different approaches to hyperparameter selection.
+    This test validates the mathematical correctness of the Laplace approximation.
+
+    Formula: log Z ≈ log p(y|w_MAP) + log p(w_MAP) - 0.5 * log|H|
+    where H = -∇²(log p(y|w) + log p(w)) is the negative Hessian of log-posterior.
+    """
+
+    @pytest.fixture
+    def regression_data(self):
+        """Load design matrix and spike counts for regression."""
+        dm_path = MATLAB_DIR / "exampleDM.mat"
+        data_path = MATLAB_DIR / "exampleData.mat"
+        if not dm_path.exists() or not data_path.exists():
+            pytest.skip("MATLAB fixtures not found")
+        return load_design_matrix_and_spikes()
+
+    def test_log_evidence_components(self, regression_data):
+        """
+        Verify log-evidence is correctly computed from components.
+
+        log Z = L + P - 0.5 * log|Sinv|
+        where Sinv = -H = -(ddL + ddP) (negative Hessian of log-posterior)
+        """
+        from pyneuroglm.regression.sklearn import BayesianGLMRegressor
+        from pyneuroglm.regression.empirical_bayes import log_evidence
+        from pyneuroglm.regression.likelihood import poisson as poisson_loglik
+        from pyneuroglm.regression.prior import gaussian_zero_mean_inv, ridge_Cinv
+        from pyneuroglm.regression.nonlinearity import exp as exp_nlfun
+
+        X, y = regression_data
+
+        model = BayesianGLMRegressor(alpha=1.0, fit_intercept=True, initialize="lstsq")
+        model.fit(X, y)
+
+        X_ = np.column_stack((np.ones(X.shape[0]), X))
+        w = np.concatenate([[model.intercept_], model.coef_])
+        Cinv = ridge_Cinv(model.alpha, X_.shape[1], intercept_prepended=True)
+
+        L, _, ddL = poisson_loglik(w, X_, y, exp_nlfun)
+        P, _, ddP = gaussian_zero_mean_inv(w, Cinv)
+
+        Sinv = -(ddL + ddP)
+        sign, logdet_Sinv = np.linalg.slogdet(Sinv)
+
+        log_Z_manual = L + P - 0.5 * logdet_Sinv
+
+        def loglik_wrapper(param, *args):
+            return poisson_loglik(param, X_, y, exp_nlfun)
+
+        log_Z = log_evidence(
+            param=w,
+            hyperparam=Cinv,
+            loglik=loglik_wrapper,
+            llargs=(),
+            logprior=gaussian_zero_mean_inv,
+            lpargs=(),
+        )
+
+        print("\n=== Log Evidence Components ===")
+        print(f"Log-likelihood L:       {L:.4f}")
+        print(f"Log-prior P:            {P:.4f}")
+        print(f"log|Sinv|:              {logdet_Sinv:.4f}")
+        print(f"Manual log Z:           {log_Z_manual:.4f}")
+        print(f"log_evidence() result:  {log_Z:.4f}")
+        print(f"Difference:             {abs(log_Z - log_Z_manual):.2e}")
+
+        assert np.isclose(
+            log_Z, log_Z_manual, atol=1e-8
+        ), f"log_evidence mismatch: function={log_Z:.8f}, manual={log_Z_manual:.8f}"
+        assert sign > 0, "Sinv should be positive definite"
+        print("PASSED: Log evidence components verified")
+
+    def test_log_evidence_scorer(self, regression_data):
+        """Verify log_evidence_scorer produces same result as log_evidence."""
+        from pyneuroglm.regression.sklearn import BayesianGLMRegressor, log_evidence_scorer
+
+        X, y = regression_data
+
+        model = BayesianGLMRegressor(alpha=1.0, fit_intercept=True, initialize="lstsq")
+        model.fit(X, y)
+
+        # Use scorer
+        score = log_evidence_scorer(model, X, y)
+
+        # Use model.score (which wraps log_evidence_scorer)
+        model_score = model.score(X, y)
+
+        print("\n=== Log Evidence Scorer ===")
+        print(f"log_evidence_scorer: {score:.4f}")
+        print(f"model.score:         {model_score:.4f}")
+
+        assert np.isclose(score, model_score, atol=1e-10), "Scorer and model.score should match"
+        assert np.isfinite(score), "Score should be finite"
+        print("PASSED: Log evidence scorer verified")
+
+    def test_log_evidence_alpha_sensitivity(self, regression_data):
+        """
+        Verify log-evidence changes appropriately with regularization.
+
+        For very weak prior (small alpha): overfitting risk, potentially lower evidence
+        For very strong prior (large alpha): underfitting, potentially lower evidence
+        Optimal alpha: somewhere in between (evidence maximization principle)
+        """
+        from pyneuroglm.regression.sklearn import BayesianGLMRegressor
+
+        X, y = regression_data
+
+        alphas = [0.01, 0.1, 1.0, 10.0, 100.0]
+        scores = []
+
+        for alpha in alphas:
+            model = BayesianGLMRegressor(alpha=alpha, fit_intercept=True, initialize="lstsq")
+            model.fit(X, y)
+            try:
+                score = model.score(X, y)
+            except ValueError:
+                score = np.nan
+            scores.append(score)
+
+        print("\n=== Log Evidence vs Alpha ===")
+        for alpha, score in zip(alphas, scores):
+            print(f"alpha={alpha:6.2f}: log_evidence={score:.4f}")
+
+        # Basic sanity: scores should all be finite (or NaN if failed)
+        finite_scores = [s for s in scores if np.isfinite(s)]
+        assert len(finite_scores) >= 3, "At least 3 alphas should produce finite scores"
+
+        # Evidence should vary with alpha (not all identical)
+        if len(finite_scores) > 1:
+            score_range = max(finite_scores) - min(finite_scores)
+            assert score_range > 1.0, f"Evidence should vary with alpha, range={score_range:.2f}"
+
+        print("PASSED: Log evidence alpha sensitivity verified")
+
+    def test_hessian_positive_definite_for_evidence(self, regression_data):
+        """
+        Verify the negative Hessian (Sinv) is positive definite at MAP.
+
+        This is required for Laplace approximation validity.
+        Sinv = -(ddL + ddP) where ddL, ddP are negative semidefinite.
+        """
+        from pyneuroglm.regression.sklearn import BayesianGLMRegressor
+        from pyneuroglm.regression.likelihood import poisson as poisson_loglik
+        from pyneuroglm.regression.prior import gaussian_zero_mean_inv, ridge_Cinv
+        from pyneuroglm.regression.nonlinearity import exp as exp_nlfun
+
+        X, y = regression_data
+
+        model = BayesianGLMRegressor(alpha=1.0, fit_intercept=True, initialize="lstsq")
+        model.fit(X, y)
+
+        X_ = np.column_stack((np.ones(X.shape[0]), X))
+        w = np.concatenate([[model.intercept_], model.coef_])
+        Cinv = ridge_Cinv(model.alpha, X_.shape[1], intercept_prepended=True)
+
+        _, _, ddL = poisson_loglik(w, X_, y, exp_nlfun)
+        _, _, ddP = gaussian_zero_mean_inv(w, Cinv)
+
+        Sinv = -(ddL + ddP)
+
+        eigenvalues = np.linalg.eigvalsh(Sinv)
+        min_eigenvalue = np.min(eigenvalues)
+
+        print("\n=== Sinv Positive Definiteness ===")
+        print(f"Min eigenvalue of Sinv: {min_eigenvalue:.4e}")
+        print(f"Max eigenvalue of Sinv: {np.max(eigenvalues):.4e}")
+
+        assert min_eigenvalue > 0, f"Sinv should be positive definite, min eig = {min_eigenvalue}"
+        print("PASSED: Sinv is positive definite")

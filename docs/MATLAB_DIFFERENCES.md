@@ -114,6 +114,12 @@ This document enumerates those differences explicitly.
 | Grid search | Yes | No |
 | Active learning | Yes | No |
 
+**Implementation Difference:**
+- **MATLAB**: Uses **cross-validation** test likelihood for hyperparameter selection
+- **Python**: Uses **Laplace approximation** log-evidence for hyperparameter selection
+
+Both approaches are valid for selecting the regularization strength (alpha), but they will produce different optimal hyperparameters. The Laplace approximation is analytical and faster; cross-validation is empirical and may be more robust for small datasets.
+
 ---
 
 ## 6. Testing and Numerical Parity
@@ -218,11 +224,13 @@ The following parity tests have been implemented:
 - [x] Poisson likelihood parity (log-lik, gradient, Hessian)
 - [x] Ridge prior parity
 - [x] MAP regression parity
+- [x] Laplace log-evidence validation (mathematical correctness)
 
 **Bug Fixes (discovered during parity audit):**
 - Hessian formula in `likelihood.py` (commit `8ea3fde`)
 - `Cinv` dimension mismatch when `fit_intercept=True` (commit `05b270e`)
 - Optimizer tolerance settings for Newton-CG (commit `05b270e`)
+- Sign error in `empirical_bayes.py` - Sinv should be `-(ddL + ddP)`
 
 ## 12. Planned Improvements
 
