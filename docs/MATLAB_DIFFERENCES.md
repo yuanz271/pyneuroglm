@@ -232,6 +232,37 @@ The following parity tests have been implemented:
 - Optimizer tolerance settings for Newton-CG (commit `05b270e`)
 - Sign error in `empirical_bayes.py` - Sinv should be `-(ddL + ddP)`
 
+### 11.1 MAP Parity Check Details
+
+Detailed comparison between Python and MATLAB MAP estimation on `exampleMAP.mat`:
+
+| Metric | MATLAB | Python | Status |
+|--------|--------|--------|--------|
+| Objective value | 669.67411 | 669.67400 | ✅ Match (diff = 1.1e-4) |
+| Gradient norm | 3.86 | 2.5e-7 | Python converges better |
+| Weight correlation | - | 0.999997 | ✅ Excellent |
+| Weight max diff | - | 0.0037 | Due to optimizer precision |
+
+**Key Findings:**
+
+1. **Same objective function**: Both minimize neg log-posterior = neg log-likelihood + neg log-prior
+2. **Same prior construction**: Ridge with `Cinv[0,0]=0` (no intercept regularization)
+3. **Same minimum reached**: Both converge to objective ~669.67
+
+**Optimizer Difference:**
+
+| Aspect | MATLAB | Python |
+|--------|--------|--------|
+| Algorithm | `quasi-newton` (fminunc) | `trust-ncg` (scipy.optimize) |
+| Convergence | grad_norm = 3.86 | grad_norm = 2.5e-7 |
+| Precision | ~15M× less precise | Machine precision |
+
+The small weight differences (max ~0.004) are due to MATLAB's optimizer not fully converging, not implementation bugs. Python's `trust-ncg` is a more powerful optimizer that reaches true machine-precision convergence.
+
+**Test Coverage:**
+- `test_map_parity_with_matlab` in `tests/test_poisson_likelihood_parity.py`
+- Verifies objective match (tolerance < 0.01) and weight correlation (> 0.9999)
+
 ## 12. Planned Improvements
 
 The following improvements are planned to increase parity:

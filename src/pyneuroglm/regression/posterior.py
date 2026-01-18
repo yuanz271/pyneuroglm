@@ -256,10 +256,10 @@ def get_posterior_weights(
             obj.function,
             w0,
             args,
-            method="Newton-CG",
+            method="trust-ncg",
             jac=obj.gradient,
             hess=obj.hessian,
-            options={"xtol": 1e-10, "maxiter": 1000},
+            options={"gtol": 1e-6},
         )
         if not opt.success:
             warnings.warn("Optimization not succeed")
