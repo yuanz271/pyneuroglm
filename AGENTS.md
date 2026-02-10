@@ -80,6 +80,7 @@ pyneuroglm/
 - **DO NOT** add `__init__.py` to `regression/` without updating all imports
 - **DO NOT** use `pip install` for dev setup - use `uv sync --group dev`
 - **DO NOT** commit large binaries - stash reference data in `example/`
+- **DO NOT** commit without asking the user first
 - **NEVER** embed machine-specific paths or credentials
 - **NEVER** suppress type errors with `as any` or `# type: ignore`
 

@@ -60,13 +60,12 @@ def poisson(w, X, y, inverse_link, subset_inds=None) -> tuple[ArrayLike, ArrayLi
     dlam = dlam[nz]
     ddlam = ddlam[nz]
 
-    # dL = sum_i (y[i]/lam[i] - 1) d(lam[i])/d(eta[i]) x[i]
-    ylam = y / lam  # (n,)
+    ylam = y / lam
     d = (ylam - 1) * dlam
-    dL = X.T @ d  # (p, n) (n,) -> (p,)  gradient
+    dL = X.T @ d
 
-    # ddL = X'HX
-    h = d * ddlam - (ylam + 1) / lam * np.square(dlam)  # (n,) (n,) + (n,) (n,) -> (n,)  diagonal
-    ddL = np.einsum("ij,i,ik->jk", X, h, X)  # (p ,n) (n,n) (n, p) -> (p, p)  # Hessian
+    # Hessian diagonal: h = (y/lam - 1)*g'' - y*(g')^2/lam^2
+    h = (ylam - 1) * ddlam - ylam * np.square(dlam) / lam
+    ddL = np.einsum("ij,i,ik->jk", X, h, X)
 
     return L, dL, ddL

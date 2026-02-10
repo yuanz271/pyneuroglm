@@ -32,38 +32,14 @@ def log_evidence(param, hyperparam, loglik, llargs, logprior, lpargs):
     ValueError
         If the posterior Hessian is not positive definite.
     """
-    # Evaluate log-likelihood and its Hessian
     L, _, ddL = loglik(param, *llargs)
-
-    # Evaluate log-prior and its Hessian
     P, _, ddP = logprior(param, hyperparam, *lpargs)
 
-    # logjoint = loglik + logprior
-    # logdet = - log|Hessian logjoint|
-    # logZ = logjoint + 0.5 logdet
-
-    # logZ = logp(y|x, b) + logp(b) + 0.5 * logdetS
-    # Sinv = - (dd logp(y|x, b) + dd logp(b))
-    # logZ = L + P + 0.5 * log|S|
-
-    Sinv = ddL + ddP  # -Hession joint
+    # Laplace: log Z ≈ L + P - 0.5*log|Sinv| where Sinv = -(ddL + ddP)
+    Sinv = -(ddL + ddP)
     sign, logdetSinv = np.linalg.slogdet(Sinv)
 
     if sign <= 0:
-        raise ValueError("Posterior Hessian must be positive definite.")
+        raise ValueError("Negative Hessian must be positive definite at MAP.")
 
-    # Laplace log-evidence
-    logZ = L + P - 0.5 * logdetSinv  # log|S| = -log|invS|
-    return logZ
-
-
-# def hessian_log_posterior_mvnorm(beta, X, y, Sigma_prior_inv):
-#     eta = X @ beta
-#     lambda_ = np.exp(eta)
-#     W = np.diag(lambda_)
-#     H = X.T @ W @ X + Sigma_prior_inv
-#     return H
-
-
-# ddL = -X.T @ diag(lambda) @ X
-# ddp = -Cinv
+    return L + P - 0.5 * logdetSinv

@@ -255,10 +255,9 @@ class BayesianGLMRegressor(RegressorMixin, BaseEstimator):
             X_ = np.column_stack((np.ones(X.shape[0]), X))
         else:
             X_ = X
-        n_params = X.shape[1]
 
-        # Create inverse covariance matrix for prior
-        Cinv = ridge_Cinv(self.alpha, n_params, self.fit_intercept)
+        # Create inverse covariance matrix for prior (must match X_ dimensions)
+        Cinv = ridge_Cinv(self.alpha, X_.shape[1], self.fit_intercept)
 
         # Map initialization string to function
         if self.initialize == "zero":
