@@ -10,7 +10,7 @@
 - Temporal basis utilities for raised cosine and nonlinear time warping constructions.
 - Experiment/Trial abstractions that keep stimulus, covariate, and spike data tidy.
 - Design matrix helpers to assemble covariates and align them with experimental bins.
-- Ready-to-use regression components for optimizing GLM parameters.
+- MAP estimation for Poisson GLMs with ridge prior and Laplace posterior uncertainty (scikit-learn API).
 
 ## Installation
 

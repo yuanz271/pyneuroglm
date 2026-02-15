@@ -161,10 +161,13 @@ class BayesianGLMRegressor(RegressorMixin, BaseEstimator):
         Fitted coefficients (excluding intercept if fit_intercept=True).
     intercept_ : float
         Fitted intercept term (only if fit_intercept=True).
-    coef_std_ : ndarray of shape (n_features,) or (n_features + 1,)
-        Standard deviations of the fitted coefficients.
+    coef_std_ : ndarray of shape (n_features,)
+        Posterior standard deviations of the fitted coefficients.
+    intercept_std_ : float
+        Posterior standard deviation of the intercept (only if fit_intercept=True).
     hessian_inv_ : ndarray of shape (n_features, n_features) or (n_features + 1, n_features + 1)
-        Inverse Hessian matrix at the MAP estimate.
+        Full inverse Hessian at the MAP estimate (includes intercept dimension
+        when fit_intercept=True).
     n_features_in_ : int
         Number of features seen during fit.
 
@@ -279,11 +282,14 @@ class BayesianGLMRegressor(RegressorMixin, BaseEstimator):
         if self.fit_intercept:
             self.intercept_ = w[0]
             self.coef_ = w[1:]
+            self.intercept_std_ = sd[0]
+            self.coef_std_ = sd[1:]
         else:
             self.intercept_ = 0.0
             self.coef_ = w
+            self.intercept_std_ = 0.0
+            self.coef_std_ = sd
 
-        self.coef_std_ = sd
         self.hessian_inv_ = invH
 
         return self

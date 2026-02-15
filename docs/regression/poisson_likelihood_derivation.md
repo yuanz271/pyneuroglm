@@ -56,3 +56,60 @@ and therefore
 \]
 
 which is negative semidefinite (concave log-likelihood).
+
+## Gaussian prior
+
+A zero-mean Gaussian prior with inverse covariance (precision) matrix \(C^{-1}\) gives
+
+\[
+P(w) = -\tfrac{1}{2}\,w^\top C^{-1} w,
+\qquad
+\nabla_w P = -C^{-1} w,
+\qquad
+\nabla_w^2 P = -C^{-1}.
+\]
+
+For a ridge prior, \(C^{-1} = \alpha I\). The intercept is typically excluded from
+penalisation by setting the corresponding diagonal entry to zero.
+
+This matches the implementation in `pyneuroglm.regression.prior`.
+
+## MAP objective
+
+The log-posterior is the sum of log-likelihood and log-prior:
+
+\[
+\log p(w \mid y) \propto L(w) + P(w).
+\]
+
+The MAP estimate \(\hat{w}\) maximises this, or equivalently minimises the negative
+log-posterior \(-L(w) - P(w)\). At the optimum the gradient vanishes:
+
+\[
+\nabla_w L(\hat{w}) + \nabla_w P(\hat{w}) = 0.
+\]
+
+## Laplace approximation
+
+The posterior covariance is approximated by the inverse of the negative Hessian of the
+log-posterior evaluated at the MAP:
+
+\[
+\Sigma_{\mathrm{post}} \approx \left[-\nabla_w^2 L(\hat{w}) - \nabla_w^2 P(\hat{w})\right]^{-1}.
+\]
+
+Marginal standard deviations are \(\sqrt{\mathrm{diag}(\Sigma_{\mathrm{post}})}\).
+
+The Laplace approximation to the log marginal likelihood (log evidence) is
+
+\[
+\log p(y) \approx L(\hat{w}) + P(\hat{w}) - \tfrac{1}{2}\log\left|\Sigma_{\mathrm{post}}^{-1}\right|.
+\]
+
+The normalising constant \(\tfrac{d}{2}\log(2\pi)\) is omitted since it is independent
+of the hyperparameters and cancels during model comparison.
+
+This is used for hyperparameter selection (e.g., choosing \(\alpha\)).
+
+These match the implementations in `pyneuroglm.regression.posterior` and
+`pyneuroglm.regression.empirical_bayes`.

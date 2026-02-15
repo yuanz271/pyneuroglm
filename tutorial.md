@@ -154,3 +154,32 @@ Make sure your `y` is a column vector; `get_response` returns a matrix if the ex
 
 ## Doing the actual regression
 You can use any regression library with the design matrix and response variable. [scikit-learn](https://scikit-learn.org/) and [statsmodels](https://www.statsmodels.org/) are two popular Python packages that provide a variety of regression models.
+
+## MAP estimation with BayesianGLMRegressor
+
+pyneuroglm includes a scikit-learn-compatible Poisson GLM regressor that performs Maximum A Posteriori estimation with a ridge (Gaussian) prior:
+
+```python
+from pyneuroglm.regression.sklearn import BayesianGLMRegressor
+
+model = BayesianGLMRegressor(alpha=1.0)
+model.fit(X, y)
+y_pred = model.predict(X)
+```
+
+The `alpha` parameter controls prior strength (higher values shrink weights toward zero). The optimizer uses analytical gradient and Hessian via `trust-ncg`, matching the MATLAB `fminunc` trust-region approach.
+
+After fitting, the model provides:
+- `model.coef_` and `model.intercept_` -- MAP weight estimates
+- `model.coef_std_` and `model.intercept_std_` -- marginal posterior standard deviations (Laplace approximation)
+- `model.hessian_inv_` -- full approximate posterior covariance matrix (includes intercept dimension)
+
+## Reconstructing weights per covariate
+
+To inspect weights grouped by covariate (e.g., for plotting temporal filters):
+
+```python
+ws = dm.combine_weights(model.coef_)
+```
+
+This returns a dictionary keyed by covariate label, each containing the weight vector and time axis for that covariate.
