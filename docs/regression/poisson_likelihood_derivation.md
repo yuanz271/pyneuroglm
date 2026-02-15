@@ -39,7 +39,7 @@ with per-observation diagonal terms
 h_i = \left(\frac{y_i}{\lambda_i} - 1\right)\ddot{\lambda}_i - y_i\frac{\dot{\lambda}_i^2}{\lambda_i^2}.
 \]
 
-This matches the implementation in `src/pyneuroglm/regression/likelihood.py`.
+This matches the implementation in `pyneuroglm.regression.likelihood`.
 
 ## Canonical exponential link
 
