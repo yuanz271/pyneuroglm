@@ -26,7 +26,8 @@ pyneuroglm/
 │       ├── optim.py       # Objective class for optimization
 │       ├── empirical_bayes.py  # Log evidence computation
 │       └── nonlinearity.py     # exp() activation
-├── tests/                 # Single test file + MATLAB fixture
+├── docs/                  # Project documentation
+├── tests/                 # Tests + MATLAB fixtures
 ├── example/               # tutorial.ipynb + MATLAB reference .mat files
 └── tutorial.md            # Walkthrough documentation
 ```
@@ -40,18 +41,18 @@ pyneuroglm/
 | Create temporal basis | `basis.py` | `make_smooth_temporal_basis()`, `make_nonlinear_raised_cos()` |
 | Fit GLM | `regression/sklearn.py` | `BayesianGLMRegressor` (sklearn-compatible) |
 | Compute posterior | `regression/posterior.py` | `get_posterior_weights()` |
-| Run tests | `tests/test_pyneuroglm.py` | 7 smoke tests, MATLAB validation |
+| Run tests | `tests/` | Smoke tests + parity/validation tests (some marked `slow`) |
 | Usage examples | `tutorial.md`, `example/tutorial.ipynb` | End-to-end walkthrough |
 
 ## CODE MAP
 
 | Symbol | Type | Location | Role |
 |--------|------|----------|------|
-| `Experiment` | Class | experiment.py:60 | Container for trials + variable registry |
-| `Trial` | Class | experiment.py:254 | Per-trial data storage |
-| `DesignMatrix` | Class | design.py:25 | Builds feature matrices from covariates |
-| `Covariate` | Class | design.py:556 | Defines how variables map to features |
-| `Basis` | Dataclass | basis.py:19 | Stores basis matrix + reconstruction params |
+| `Experiment` | Class | experiment.py:61 | Container for trials + variable registry |
+| `Trial` | Class | experiment.py:255 | Per-trial data storage |
+| `DesignMatrix` | Class | design.py:26 | Builds feature matrices from covariates |
+| `Covariate` | Class | design.py:557 | Defines how variables map to features |
+| `Basis` | Dataclass | basis.py:20 | Stores basis matrix + reconstruction params |
 | `BayesianGLMRegressor` | Class | regression/sklearn.py:134 | sklearn-compatible GLM with empirical Bayes |
 | `make_smooth_temporal_basis` | Func | basis.py:51 | Creates raised-cosine basis |
 | `conv_basis` | Func | basis.py:178 | Convolves signal with basis |
@@ -70,10 +71,11 @@ pyneuroglm/
 - Absolute imports: `from pyneuroglm.basis import ...`
 
 ### Testing
-- Single test file `tests/test_pyneuroglm.py` (smoke tests)
+- `tests/test_pyneuroglm.py` (smoke tests)
+- Additional parity/validation tests live in `tests/` (some marked `slow`)
 - MATLAB reference fixture: `tests/basis.npy`
 - Tests NOT seeded - uses `np.random.randn()` directly
-- Run: `uv run pytest` or `pytest tests/test_pyneuroglm.py -q`
+- Run: `uv run pytest` (all), `uv run pytest -q`, `uv run pytest -m "not slow"`
 
 ## ANTI-PATTERNS (THIS PROJECT)
 

@@ -713,3 +713,7 @@ $RECYCLE.BIN/
 
 # Documents / artifacts
 *.pdf
+neuroGLM/
+uv.lock
+.ignore
+.python-version

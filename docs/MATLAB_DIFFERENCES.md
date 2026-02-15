@@ -16,11 +16,12 @@ This document enumerates those differences explicitly.
 - Experiment / trial structure
 - Design matrix construction
 - Temporal basis functions (raised cosine, boxcar)
-- Poisson and Bernoulli GLMs
+- Poisson GLMs
 - Empirical Bayes estimation for ridge-like priors
 
 **Not implemented:**
 - Full feature parity with MATLAB neuroGLM (see details below)
+- Bernoulli GLM fitting (posterior stub is not implemented)
 
 ---
 
@@ -133,7 +134,7 @@ Both approaches are valid for selecting the regularization strength (alpha), but
 | MAP regression parity | Yes | Yes |
 | End-to-end reproduction | Yes | Partial |
 
-**Current State (v0.2+):**
+**Current State:**
 - Numerical equivalence is verified for: basis functions, design matrix, Poisson likelihood, ridge prior, and MAP weights
 - Tests use MATLAB `.mat` fixtures (`exampleDM.mat`, `exampleData.mat`) for validation
 - Tolerances: log-likelihood ~1e-8, gradient ~1e-8, Hessian ~1e-7
@@ -234,34 +235,19 @@ The following parity tests have been implemented:
 
 ### 11.1 MAP Parity Check Details
 
-Detailed comparison between Python and MATLAB MAP estimation on `exampleMAP.mat`:
+MAP parity is validated using a MATLAB fixture (`exampleMAP.mat`) when it is available.
 
-| Metric | MATLAB | Python | Status |
-|--------|--------|--------|--------|
-| Objective value | 669.67411 | 669.67400 | ✅ Match (diff = 1.1e-4) |
-| Gradient norm | 3.86 | 2.5e-7 | Python converges better |
-| Weight correlation | - | 0.999997 | ✅ Excellent |
-| Weight max diff | - | 0.0037 | Due to optimizer precision |
+**Key findings:**
 
-**Key Findings:**
+1. Same objective: neg log-posterior = neg log-likelihood + neg log-prior
+2. Same ridge prior construction: `Cinv[0,0]=0` (no intercept regularization)
+3. Same optimum: MATLAB and Python reach the same objective value within tolerance
 
-1. **Same objective function**: Both minimize neg log-posterior = neg log-likelihood + neg log-prior
-2. **Same prior construction**: Ridge with `Cinv[0,0]=0` (no intercept regularization)
-3. **Same minimum reached**: Both converge to objective ~669.67
+**Optimizer note:** MATLAB typically uses `fminunc` (quasi-Newton). Python uses `scipy.optimize` with `trust-ncg`, which can converge to a tighter gradient tolerance.
 
-**Optimizer Difference:**
-
-| Aspect | MATLAB | Python |
-|--------|--------|--------|
-| Algorithm | `quasi-newton` (fminunc) | `trust-ncg` (scipy.optimize) |
-| Convergence | grad_norm = 3.86 | grad_norm = 2.5e-7 |
-| Precision | ~15M× less precise | Machine precision |
-
-The small weight differences (max ~0.004) are due to MATLAB's optimizer not fully converging, not implementation bugs. Python's `trust-ncg` is a more powerful optimizer that reaches true machine-precision convergence.
-
-**Test Coverage:**
+**Test coverage:**
 - `test_map_parity_with_matlab` in `tests/test_poisson_likelihood_parity.py`
-- Verifies objective match (tolerance < 0.01) and weight correlation (> 0.9999)
+- Skips automatically if `exampleMAP.mat` is not present
 
 ## 12. Planned Improvements
 
