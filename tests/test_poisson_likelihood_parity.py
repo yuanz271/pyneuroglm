@@ -232,9 +232,9 @@ class TestPoissonLikelihoodParity:
         print(f"L difference:      {abs(L_py - (-L_ref)):.2e}")
 
         # Log-likelihood
-        assert np.isclose(
-            L_py, -L_ref, atol=TOL_LOGLIK
-        ), f"Log-likelihood mismatch: Python={L_py:.8f}, -MATLAB={-L_ref:.8f}"
+        assert np.isclose(L_py, -L_ref, atol=TOL_LOGLIK), (
+            f"Log-likelihood mismatch: Python={L_py:.8f}, -MATLAB={-L_ref:.8f}"
+        )
 
         # Gradient
         grad_diff = np.max(np.abs(dL_py - (-dL_ref)))
@@ -392,9 +392,9 @@ class TestPriorParity:
         dp_matlab = Cinv @ w
         ddp_matlab = Cinv
 
-        assert np.isclose(
-            P_py, -p_matlab, atol=1e-10
-        ), f"Prior value mismatch: Python={P_py}, -MATLAB={-p_matlab}"
+        assert np.isclose(P_py, -p_matlab, atol=1e-10), (
+            f"Prior value mismatch: Python={P_py}, -MATLAB={-p_matlab}"
+        )
         assert np.allclose(dP_py, -dp_matlab, atol=1e-10), "Prior gradient mismatch"
         assert np.allclose(ddP_py, -ddp_matlab, atol=1e-10), "Prior Hessian mismatch"
 
@@ -512,9 +512,9 @@ class TestMAPRegression:
         print(f"Max eigenvalue of Hessian: {max_eigenvalue:.2e}")
         print(f"Min eigenvalue of Hessian: {np.min(eigenvalues):.2e}")
 
-        assert (
-            max_eigenvalue < 0
-        ), f"Hessian should be negative definite, max eigenvalue = {max_eigenvalue:.2e}"
+        assert max_eigenvalue < 0, (
+            f"Hessian should be negative definite, max eigenvalue = {max_eigenvalue:.2e}"
+        )
         print("PASSED: Hessian is negative definite")
 
     def test_map_parity_with_matlab(self):
@@ -564,9 +564,9 @@ class TestMAPRegression:
         print(f"Weight max diff:   {np.max(np.abs(w_py - wml_matlab)):.6f}")
 
         OBJ_TOL = 0.01
-        assert (
-            abs(obj_py - nlogli_matlab) < OBJ_TOL
-        ), f"Objective mismatch: Python={obj_py:.6f}, MATLAB={nlogli_matlab:.6f}"
+        assert abs(obj_py - nlogli_matlab) < OBJ_TOL, (
+            f"Objective mismatch: Python={obj_py:.6f}, MATLAB={nlogli_matlab:.6f}"
+        )
 
         CORR_THRESH = 0.9999
         corr = np.corrcoef(w_py, wml_matlab)[0, 1]
@@ -574,3 +574,46 @@ class TestMAPRegression:
         assert corr > CORR_THRESH, f"Weight correlation too low: {corr:.6f}"
 
         print("PASSED: MAP parity with MATLAB verified")
+
+    def test_initialization_parity_with_matlab(self):
+        """
+        Verify initialize_lstsq matches MATLAB's (X'X + Cinv) \\ (X'y).
+
+        Both solve the same square linear system, so results should match
+        to near machine precision.
+        """
+        import scipy.sparse
+
+        map_path = MATLAB_DIR / "exampleMAP.mat"
+        if not map_path.exists():
+            pytest.skip("MATLAB MAP fixture not found")
+
+        from pyneuroglm.regression.posterior import initialize_lstsq
+        from pyneuroglm.regression.prior import ridge_Cinv
+
+        mat = sio.loadmat(map_path)
+
+        def to_dense(x):
+            return x.toarray() if scipy.sparse.issparse(x) else x
+
+        X = to_dense(mat["X"])
+        y = to_dense(mat["y"]).ravel()
+        alpha = float(to_dense(mat["alpha"]).ravel()[0])
+        w0_matlab = to_dense(mat["w0"]).ravel()
+
+        Cinv = ridge_Cinv(alpha, X.shape[1], intercept_prepended=True)
+        w0_python = initialize_lstsq(X, y, Cinv)
+
+        max_diff = np.max(np.abs(w0_python - w0_matlab))
+
+        print("\n=== Initialization Parity Test ===")
+        print(f"w0 length: {len(w0_matlab)}")
+        print(f"Max |diff|: {max_diff:.2e}")
+        print(f"w0 MATLAB range: [{w0_matlab.min():.6f}, {w0_matlab.max():.6f}]")
+        print(f"w0 Python range: [{w0_python.min():.6f}, {w0_python.max():.6f}]")
+
+        assert np.allclose(w0_python, w0_matlab, atol=1e-10), (
+            f"Initialization mismatch: max |diff| = {max_diff:.2e}"
+        )
+
+        print("PASSED: initialize_lstsq matches MATLAB")

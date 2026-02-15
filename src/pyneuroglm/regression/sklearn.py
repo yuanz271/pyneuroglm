@@ -148,7 +148,7 @@ class BayesianGLMRegressor(RegressorMixin, BaseEstimator):
         Distribution family for the GLM. Currently only 'poisson' is supported.
     fit_intercept : bool, default=True
         Whether to fit an intercept term.
-    initialize : {'zero', 'lstsq'}, default='zero'
+    initialize : {'zero', 'lstsq'}, default='lstsq'
         Initialization strategy for the optimization.
         - 'zero' : Initialize with zeros
         - 'lstsq' : Initialize with least squares solution
@@ -186,7 +186,7 @@ class BayesianGLMRegressor(RegressorMixin, BaseEstimator):
     """
 
     def __init__(
-        self, alpha=1.0, dist="poisson", fit_intercept=True, initialize="zero", init_kwargs=None
+        self, alpha=1.0, dist="poisson", fit_intercept=True, initialize="lstsq", init_kwargs=None
     ):
         """
         Initialize the regressor with prior strength and optimization choices.
@@ -199,7 +199,7 @@ class BayesianGLMRegressor(RegressorMixin, BaseEstimator):
             Response distribution to fit. Currently only Poisson is supported.
         fit_intercept : bool, default=True
             If True, prepend a bias column to the design matrix and fit an intercept.
-        initialize : {'zero', 'lstsq'}, default='zero'
+        initialize : {'zero', 'lstsq'}, default='lstsq'
             Strategy used to initialize the weight vector before optimization.
         init_kwargs : dict or None, optional
             Extra keyword arguments forwarded to the initialization routine.

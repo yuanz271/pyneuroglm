@@ -208,7 +208,7 @@ def get_posterior_weights(
     Cinv,
     dist="poisson",
     cvfolds=None,
-    initialize=initialize_zero,
+    initialize=initialize_lstsq,
     init_kwargs=None,
 ):
     """
