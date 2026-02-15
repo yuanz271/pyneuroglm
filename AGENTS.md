@@ -77,6 +77,12 @@ pyneuroglm/
 - Tests NOT seeded - uses `np.random.randn()` directly
 - Run: `uv run pytest` (all), `uv run pytest -q`, `uv run pytest -m "not slow"`
 
+### Branching
+- **GitHub Flow**: `main` is the single long-lived branch, always deployable
+- Short-lived feature/fix branches merged via PR (e.g., `docs/...`, `fix/...`)
+- Trivial one-off changes may be pushed directly to `main`
+- Tag releases on `main` (e.g., `v0.3.0`) — no release branches
+
 ## ANTI-PATTERNS (THIS PROJECT)
 
 - **DO NOT** add `__init__.py` to `regression/` without updating all imports
@@ -116,6 +122,5 @@ ruff format .                    # Format code
 
 - **Port of MATLAB neuroGLM**: Some naming/patterns mirror original. See `tutorial.md` for mapping.
 - **Binsize matters**: `Experiment.binfun()` converts time→bins. Ensure consistent time units.
-- **Pre-commit hooks**: `ruff`, `ruff-format`, `pydocstyle --convention=numpy` configured in `.pre-commit-config.yaml`
 - **Test fixture**: `basis.npy` validates `make_nonlinear_raised_cos()` against MATLAB output. Note: `assert np.allclose(basis.B[:-1], B)` - size differs by 1.
 - **Stale bytecode**: `__pycache__` may contain orphaned `.pyc` for deleted modules (`glm.py`, `negloglik.py`). Safe to delete `__pycache__` dirs if issues arise.
