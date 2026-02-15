@@ -21,7 +21,7 @@ The spike timings are relative to the beginning of the trial.
 
 A typical trial based experiment may have a cue that indicates the beginning of a trial, cues that indicate waiting period, or presentation of a target at random times.
 These covariates are best represented as events.
-However, if two or more timings are perfectly correlated, it would be sufficient to include just one (see [Experiment Design](exptdesign.md) for more information).
+However, if two or more timings are perfectly correlated, it is often sufficient to include just one.
 Note that many behaviors are also recorded as timing: reaction time, button press time, etc.
 
 ### Continuous
@@ -39,24 +39,25 @@ These values can be used to build a feature space, or  to include specific featu
 ## Registering variables to the experiment
 
 Each experimental variable must be registered before the data are loaded.
-First, create an experiment object using `pyneuroglm.experiment.Experiment`:
+First, create an experiment object using `pyneuroglm.Experiment`:
 ```python
-from pyneuroglm.experiment import Experiment
+from pyneuroglm import Experiment
 
-expt = Experiment(time_unit='ms', binsize=10, eid=1, params=())
+expt = Experiment(time_unit="ms", binsize=10, eid="example", meta={})
 ```
 where `time_unit` is a string for the time unit that's going to be used consistently throughout (e.g., 's' or 'ms'), `binsize` is the duration of the time bin to discretize the timings.
 `eid` is a string to uniquely identify the experiment among other experiments (mostly for the organizational purpose).
-`params` can be anything that you want to associate with the experiment structure for easy access later, since it will be carried around throughout the code.
+`meta` can be anything that you want to associate with the experiment structure for easy access later, since it will be carried around throughout the code.
 
 Then, each experimental variable is registered by indicating the type, label, and user friendly name of the variable.
 ```python
-expt.register_continuous('LFP', 'Local Field Potential', 1)  # 1D continuous obsevation over time
-expt.register_continuous('eyepos', 'Eye Position', 2)  # 2D observation
-expt.register_timing('dotson', 'Motion Dots Onset')  # events that happen 0 or more times per trial (sparse)
-expt.register_timing('saccade', "Monkey's Saccade Timing")
-expt.register_spike('sptrain', 'Our Neuron')  # Spike train!!!
-expt.register_value('coh', 'Dots Coherence', 'dotson')  # information on the trial
+expt.register_continuous("LFP", "Local Field Potential", ndim=1)  # 1D observation over time
+expt.register_continuous("eyepos", "Eye Position", ndim=2)  # 2D observation
+expt.register_timing("fpon", "Fixation On")  # events that happen 0 or more times per trial
+expt.register_timing("fpoff", "Fixation Off")
+expt.register_timing("saccade", "Monkey's Saccade Timing")
+expt.register_spike_train("sptrain", "Our Neuron")  # spike train
+expt.register_value("coh", "Dots Coherence")  # per-trial scalar value
 ```
 
 ## Loading the data for each trial
@@ -65,16 +66,21 @@ For each trial, we load each of the possible covariate into the experiment struc
 
 For each trial, we make a temporary object `trial` to load the data:
 ```python
-from pyneuroglm.experiment import Trial, Variable
+from pyneuroglm import Trial
 
-trial = Trial(tid=1, duration=10)
+trial = Trial(tid=1, duration=1000)
 ```
 where `tid` is the unique identifier, and `duration` is the length of the current trial in `time_unit`.
 
-`trial` is a object where you can need to add each of your experimental variables you have registered for the experiment as fields as a key-value pair. Below are examples with randomly generated dummy data.
+`trial` is an object where you add each experimental variable you registered for the experiment as a key-value pair. Below is a minimal example.
 
 ```python
-trial['dotson'] = rand() * duration  # timing variable
+import numpy as np
+
+trial["fpon"] = 100.0  # timing variable (in ms)
+trial["fpoff"] = 700.0
+trial["sptrain"] = np.array([120.0, 180.0, 350.0])  # spike times (in ms)
+trial["coh"] = 0.5
 ```
 
 Finally, we add the trial object to the experiment object:
@@ -82,44 +88,53 @@ Finally, we add the trial object to the experiment object:
 expt.add_trial(trial)
 ```
 
-Repeat this for all your trials, and your are done loading your data. The experiment object will validate the trial when you add it.
+Repeat this for all your trials, and you are done loading your data. The experiment object will validate the trial when you add it.
 
 # Forming your feature space
 Once you have your data loaded as an experiment object, you are now ready to specify how your experimental variables will be represented, and hence how your design matrix will be formed.
 
 ## Design specification
-We start by creating a **design specification object**.
+We start by creating a **design matrix object**.
 ```python
-from pyneuroglm.design import Design
+from pyneuroglm.design import DesignMatrix
 
-dspec = Design(expt)
+dm = DesignMatrix(expt)
 ```
-You can have multiple such object per experiment to analyze your experiments in different ways and compare models.
-The design specification object `dspec` contains specification of how each covariate for the analysis is defined, and the information necessary for temporal embedding and/or nonlinear transformation.
+You can have multiple such objects per experiment to analyze your experiments in different ways and compare models.
+The design matrix object contains the covariate specifications (basis functions, temporal offsets, etc.) and can compile them into a NumPy design matrix.
 
 For a timing variable, the following syntax adds a **delta function** at the time of the event:
 ```python
-dspec.add_covariate_timing(label='fpon', description='Fixation On', var_label='fpon')
+dm.add_covariate_timing(label="fpon", description="Fixation On")
 ```
-However, this is seldom what you want. You probably want to have temporal basis to represent delayed effects of the covariate to the response variable.
+However, this is seldom what you want. You probably want to have a temporal basis to represent delayed effects of the covariate on the response variable.
 Let's make a set of 8 boxcar basis functions to cover 300 ms evenly:
 ```python
-dspec.add_covariate_boxcar(label='fixation', desciption='Fixation', on_label='fpon', off_label='fpoff', shape='boxcar', duration=300, nbasis=8, binfun=expt.binfun)
+from pyneuroglm.basis import make_smooth_temporal_basis
+
+fix_basis = make_smooth_temporal_basis("boxcar", duration=300, n_bases=8, binfun=expt.binfun)
+dm.add_covariate_boxcar(
+    label="fixation",
+    on_label="fpon",
+    off_label="fpoff",
+    description="Fixation",
+    basis=fix_basis,
+)
 ```
 and use this to represent the effect of timing event instead.
 
 If you want to use autoregressive point process modeling (often known as GLM in neuroscience) by adding the spike history filter, you can do the following:
 ```python
-dspec.add_covariate_spike(label='hist', description='History filter', var_label='sptrain')
+dm.add_covariate_spike(label="hist", stim_label="sptrain", description="History filter")
 ```
 This adds spike history filters with default history basis functions.
 
 ## Building the design matrix
 The ultimate output is the design matrix:
 ```python
-dm = dspec.compileSparseDesignMatrix(trial_indices=None, concat=True)
+X = dm.compile_design_matrix(trial_indices=None)
 ```
-where `trial_indices` are the trials to include in making the design matrix, and `concat` is the flag specifying if it returns a big matrix or a list of design matrix per trial. This function is memory intensive, and could take a few seconds to complete.
+where `trial_indices` are the trials to include in making the design matrix (or None for all trials). This function can be memory intensive for large datasets.
 
 # Regression analysis
 Once you have designed your features, and obtained the design matrix, it's finally time to do some analysis!
@@ -128,14 +143,14 @@ Once you have designed your features, and obtained the design matrix, it's final
 You need to obtain the response variable of the same length as the number of rows in the design matrix to do regression. For **point process** regression, where we want to predict the observed spike train from covariates, this would be a finely binned spike train concatenated over the trials of interest:
 ```python
 # Get the spike trains back to regress against
-y = dspec.get_binned_spike(label='sptrain', trial_indices=None)
+y = dm.get_binned_spike(label="sptrain", trial_indices=None)
 ```
 
 For predicting some continuous observation, such as predicting the LFP, you can do:
 ```python
-y = dspec.get_response('LFP')
+y = dm.get_response("LFP")
 ```
 Make sure your `y` is a column vector; `get_response` returns a matrix if the experimental variable is more than 1 dimension.
 
 ## Doing the actual regression
-You can do whatever you want to do the regression with the design matrix and response variable. [scikit-learn](https://scikit-learn.org/) and [statsmodels](https://www.statsmodels.org/) are two popular Python packges that provide a variety of regression models.
+You can use any regression library with the design matrix and response variable. [scikit-learn](https://scikit-learn.org/) and [statsmodels](https://www.statsmodels.org/) are two popular Python packages that provide a variety of regression models.
