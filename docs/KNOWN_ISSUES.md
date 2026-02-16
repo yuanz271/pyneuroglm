@@ -14,7 +14,7 @@ Bugs identified in `src/pyneuroglm/` as of 2026-02-15. Ordered by severity.
 | 4 | FIXED | `design.py` | 170 | `add_covariate_constant` ignores `stim_label` parameter |
 | 5 | FIXED | `design.py` | 407 | `compile_design_matrix` crashes when `condition` excludes a covariate |
 | 6 | FIXED | `basis.py` | 243 | `delta_stim` doesn't filter negative bin indices |
-| 7 | Low | `regression/prior.py` | 45 | `ridge_Cinv` docstring claims wrong return shape |
+| 7 | FIXED | `regression/prior.py` | 45 | `ridge_Cinv` docstring claims wrong return shape |
 | 8 | Low | `regression/posterior.py` | 165 | `initialize_zero` sets intercept to `mean(y)` not `log(mean(y))` |
 
 ---
@@ -163,7 +163,8 @@ zeros out `d[0]` rather than expanding the matrix. The caller
 (`BayesianGLMRegressor.fit`) already passes `X_.shape[1]` which includes the
 intercept column, so the code is correct; only the docstring is wrong.
 
-**Fix:** Change docstring to `Diagonal matrix of shape (nx, nx)`.
+**Fixed:** Changed docstring to `Diagonal matrix of shape (nx, nx)` in
+`prior.py:45`.
 
 ---
 

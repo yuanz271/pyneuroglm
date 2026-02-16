@@ -90,6 +90,18 @@ defensive hardening. In normal usage negative indices cannot occur because
 
 ## 3. Supported Priors
 
+### Ridge Prior Intercept Handling
+
+| Aspect | MATLAB neuroGLM | pyneuroglm |
+|--------|-----------------|------------|
+| `ridge` / `ridge_Cinv` | `speye(nx) * rho` (penalizes all weights) | `intercept_prepended` option to zero out intercept penalty |
+
+MATLAB `+gpriors/ridge.m` returns `speye(nx) * rho` with no special
+intercept handling -- the intercept is regularized like any other weight.
+pyneuroglm's `ridge_Cinv` adds an `intercept_prepended` parameter that
+zeros out `d[0]` to leave the intercept unpenalized, which is standard
+practice in regularized regression.
+
 ### Implemented
 
 | Prior | MATLAB | Python |

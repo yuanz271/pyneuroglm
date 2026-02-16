@@ -43,7 +43,7 @@ def ridge_Cinv(rho, nx, intercept_prepended=False):
     Returns
     -------
     numpy.ndarray
-        Diagonal matrix of shape (nx, nx) or (nx+1, nx+1) if intercept_prepended is True.
+        Diagonal matrix of shape (nx, nx).
     """
     d = np.ones(nx)
     if intercept_prepended:
