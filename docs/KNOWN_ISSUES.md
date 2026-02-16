@@ -15,7 +15,7 @@ Bugs identified in `src/pyneuroglm/` as of 2026-02-15. Ordered by severity.
 | 5 | FIXED | `design.py` | 407 | `compile_design_matrix` crashes when `condition` excludes a covariate |
 | 6 | FIXED | `basis.py` | 243 | `delta_stim` doesn't filter negative bin indices |
 | 7 | FIXED | `regression/prior.py` | 45 | `ridge_Cinv` docstring claims wrong return shape |
-| 8 | Low | `regression/posterior.py` | 165 | `initialize_zero` sets intercept to `mean(y)` not `log(mean(y))` |
+| 8 | FIXED | `regression/posterior.py` | 165 | `initialize_zero` sets intercept to `mean(y)` not `log(mean(y))` |
 
 ---
 
@@ -185,6 +185,8 @@ The `nlin` parameter on `initialize_zero` exists to handle this, but
 is not affected. The optimizer can recover from a bad starting point, but
 convergence may be slower.
 
-**Fix:** In `get_posterior_weights`, pass `nlin=np.log` when constructing
-`init_kwargs` for the zero initializer, or change the default in
-`initialize_zero` to apply `log` when the distribution is Poisson.
+**Fixed:** `BayesianGLMRegressor.fit` now sets `init_kwargs["nlin"] = np.log`
+when `initialize='zero'` and `dist='poisson'`. This keeps `initialize_zero`
+distribution-agnostic while ensuring the correct link-function inversion at
+the call site. Regression test in
+`tests/test_pyneuroglm.py::test_initialize_zero_poisson_uses_log`.

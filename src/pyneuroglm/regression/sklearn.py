@@ -271,6 +271,11 @@ class BayesianGLMRegressor(RegressorMixin, BaseEstimator):
         # Prepare initialization kwargs
         init_kwargs = self.init_kwargs if self.init_kwargs is not None else {}
 
+        # For zero initialization with Poisson, the intercept should be
+        # log(mean(y)) so that exp(w0) = mean(y) at the starting point.
+        if self.initialize == "zero" and self.dist == "poisson":
+            init_kwargs.setdefault("nlin", np.log)
+
         # Fit the model using get_posterior_weights
         w, sd, invH = get_posterior_weights(
             X_, y, Cinv, dist=self.dist, cvfolds=None, initialize=init_func, init_kwargs=init_kwargs

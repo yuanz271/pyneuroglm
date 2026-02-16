@@ -212,3 +212,19 @@ def test_delta_stim_filters_negative_indices():
     expected[3] = 1.0
     expected[5] = 1.0
     np.testing.assert_array_equal(stim, expected)
+
+
+def test_initialize_zero_poisson_uses_log():
+    """BayesianGLMRegressor with initialize='zero' should use log(mean(y)) for Poisson intercept."""
+    from pyneuroglm.regression.sklearn import BayesianGLMRegressor
+
+    np.random.seed(42)
+    X = np.random.randn(200, 3)
+    y = np.random.poisson(5.0, size=200)
+
+    model = BayesianGLMRegressor(alpha=1.0, initialize="zero")
+    model.fit(X, y)
+
+    # With log initialization, exp(intercept) should be close to mean(y)
+    # (other coefficients are small since X is uncorrelated with y)
+    np.testing.assert_allclose(np.exp(model.intercept_), np.mean(y), rtol=0.1)
