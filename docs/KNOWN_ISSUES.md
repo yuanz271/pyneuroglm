@@ -11,7 +11,7 @@ Bugs identified in `src/pyneuroglm/` as of 2026-02-15. Ordered by severity.
 | 1 | FIXED | `regression/optim.py` | 62 | `Objective` cache stores array reference — stale gradient/Hessian |
 | 2 | FIXED | `design.py` | 453 | `combine_weights` z-score inversion formula is wrong |
 | 3 | FIXED | `regression/sklearn.py` | 109 | `log_evidence_scorer` always adds intercept |
-| 4 | Medium | `design.py` | 170 | `add_covariate_constant` ignores `stim_label` parameter |
+| 4 | FIXED | `design.py` | 170 | `add_covariate_constant` ignores `stim_label` parameter |
 | 5 | Medium | `design.py` | 407 | `compile_design_matrix` crashes when `condition` excludes a covariate |
 | 6 | Low | `basis.py` | 243 | `delta_stim` doesn't filter negative bin indices |
 | 7 | Low | `regression/prior.py` | 45 | `ridge_Cinv` docstring claims wrong return shape |
@@ -107,7 +107,9 @@ The method accepts a `stim_label` parameter (defaulting to `label`) but
 always passes `label` to `constant_stim()`. When a user provides a different
 `stim_label`, the wrong trial key is used to look up data.
 
-**Fix:** Change to `constant_stim(stim_label, binfun)`.
+**Fixed:** Changed `constant_stim(label, binfun)` to
+`constant_stim(stim_label, binfun)` in `design.py:170`. Regression test in
+`tests/test_pyneuroglm.py::test_add_covariate_constant_uses_stim_label`.
 
 ---
 

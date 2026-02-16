@@ -168,7 +168,7 @@ class DesignMatrix:
             self,
             label,
             description,
-            constant_stim(label, binfun),
+            constant_stim(stim_label, binfun),
             **kwargs,
         )
 

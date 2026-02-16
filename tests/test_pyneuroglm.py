@@ -135,3 +135,22 @@ def test_log_evidence_scorer_respects_fit_intercept():
     # giving a score identical to a model with intercept=0 (not the same as no intercept)
     assert np.isfinite(score_no)
     assert np.isfinite(score_with)
+
+
+def test_add_covariate_constant_uses_stim_label():
+    """add_covariate_constant must use stim_label to look up trial data."""
+    expt = Experiment(time_unit="ms", binsize=10, eid=1)
+    expt.register_value("coh", "Coherence")
+
+    trial = Trial(tid=0, duration=100)
+    trial["coh"] = np.array([0.5])
+    expt.add_trial(trial)
+
+    dm = DesignMatrix(expt)
+    # Covariate label differs from trial data key
+    dm.add_covariate_constant("coherence", stim_label="coh")
+    X = dm.compile_design_matrix()
+
+    n_bins = expt.binfun(100, True)
+    assert X.shape == (n_bins, 1)
+    np.testing.assert_allclose(X[:, 0], 0.5)
