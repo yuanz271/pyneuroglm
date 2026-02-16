@@ -71,8 +71,11 @@ pyneuroglm/
 - Absolute imports: `from pyneuroglm.basis import ...`
 
 ### Testing
-- `tests/test_pyneuroglm.py` (smoke tests)
-- Additional parity/validation tests live in `tests/` (some marked `slow`)
+- Test layout mirrors `src/pyneuroglm/`: one test file per module
+  - `tests/test_basis.py`, `tests/test_design.py`, `tests/test_experiment.py`
+  - `tests/regression/test_*.py` for each regression submodule
+  - `tests/regression/conftest.py` for shared fixtures and helpers
+- MATLAB parity tests marked `@pytest.mark.slow`, skip if fixtures missing
 - MATLAB reference fixture: `tests/basis.npy`
 - Tests NOT seeded - uses `np.random.randn()` directly
 - Run: `uv run pytest` (all), `uv run pytest -q`, `uv run pytest -m "not slow"`

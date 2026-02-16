@@ -61,9 +61,46 @@ This document enumerates those differences explicitly.
 - Posterior weight interpretation may require additional bookkeeping
 - Structured priors are harder to implement without extensions
 
+### 2.4 Z-score Weight Inversion (Bug Fix)
+
+| Aspect | MATLAB neuroGLM | pyneuroglm |
+|--------|-----------------|------------|
+| `combineWeights` z-score undo | `w .* sigma + mu` | `w / sigma` |
+
+MATLAB `combineWeights.m` (line 22) uses `w .* sigma + mu` to undo
+z-scoring when reconstructing weights. This formula inverts the data
+transform (`X = Z * sigma + mu`) rather than the weight transform.
+For z-scored data `Z = (X - mu) / sigma`, original-space weights are
+`w_orig = w_z / sigma`, not `w_z * sigma + mu`. pyneuroglm corrects
+this bug.
+
+### 2.5 `delta_stim` Negative Index Filtering
+
+| Aspect | MATLAB neuroGLM | pyneuroglm |
+|--------|-----------------|------------|
+| `deltaStim` index filter | `bt <= nT` (upper bound only) | `(bt >= 0) & (bt < n_bins)` |
+
+MATLAB `deltaStim.m` filters only the upper bound (`bidx = bt <= nT`).
+Negative indices would cause an error in MATLAB's `sparse()` just as they
+would in scipy's `coo_matrix`. pyneuroglm adds a lower bound check as
+defensive hardening. In normal usage negative indices cannot occur because
+`binfun` enforces `t >= 0`.
+
 ---
 
 ## 3. Supported Priors
+
+### Ridge Prior Intercept Handling
+
+| Aspect | MATLAB neuroGLM | pyneuroglm |
+|--------|-----------------|------------|
+| `ridge` / `ridge_Cinv` | `speye(nx) * rho` (penalizes all weights) | `intercept_prepended` option to zero out intercept penalty |
+
+MATLAB `+gpriors/ridge.m` returns `speye(nx) * rho` with no special
+intercept handling -- the intercept is regularized like any other weight.
+pyneuroglm's `ridge_Cinv` adds an `intercept_prepended` parameter that
+zeros out `d[0]` to leave the intercept unpenalized, which is standard
+practice in regularized regression.
 
 ### Implemented
 

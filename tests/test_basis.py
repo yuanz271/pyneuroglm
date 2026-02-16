@@ -1,33 +1,16 @@
-"""Smoke tests covering the high-level pyneuroglm API."""
+"""Tests for pyneuroglm.basis."""
 
-from collections import namedtuple
 from pathlib import Path
 
 import numpy as np
 
-from pyneuroglm.basis import make_smooth_temporal_basis, conv_basis, make_nonlinear_raised_cos
-from pyneuroglm.experiment import Experiment, Trial, Variable
-
-
-def test_experiment():
-    """Ensure experiment bins events as expected."""
-    expt = Experiment(time_unit="ms", binsize=10, eid=1)
-    assert expt.binfun(0, True) == 1
-
-
-def test_variable():
-    """Check variable dataclass fields are populated."""
-    v = Variable("label", "description", "type", 2)
-    assert (
-        v.label == "label" and v.description == "description" and v.type == "type" and v.ndim == 2
-    )
-
-
-def test_trial():
-    """Confirm trial indexing stores arrays."""
-    trial = Trial(1, 10)
-    trial["a"] = np.zeros(100)
-    assert trial["a"].shape == (100,)
+from pyneuroglm.basis import (
+    make_smooth_temporal_basis,
+    conv_basis,
+    make_nonlinear_raised_cos,
+    delta_stim,
+)
+from pyneuroglm.experiment import Experiment
 
 
 def test_make_smooth_temporal_basis():
@@ -42,36 +25,36 @@ def test_conv_basis():
     """Ensure convolution helper yields expected matrix shape."""
     expt = Experiment(time_unit="ms", binsize=10, eid=1)
     B = make_smooth_temporal_basis("raised cosine", 100, 5, expt.binfun)
-    n = 100
-    d = 2
-    x = np.random.randn(n, d)
+    x = np.random.randn(100, 2)
     X = conv_basis(x, B, offset=5)
     assert X.shape == (100, 10)
     X = conv_basis(x, B, offset=-5)
     assert X.shape == (100, 10)
 
 
-def test_combine_weights():
-    """Confirm namedtuple construction mirrors weight order."""
-    labels = ["a", "b", "c"]
-    values = [1, 2, 3]
-    W = namedtuple("Weight", labels)
-    w = W(*values)
-    assert w == (1, 2, 3)
-
-
 def test_make_nonlinear_raised_cos():
     """Verify nonlinear raised cosine basis matches MATLAB reference data."""
     basis_matlab = np.load(Path(__file__).parent / "basis.npy", allow_pickle=True)
     B = basis_matlab["B"][()]
-    param = basis_matlab["param"][
-        ()
-    ]  # dtype=[('nBases', 'O'), ('binSize', 'O'), ('endPoints', 'O'), ('nlOffset', 'O')])
+    param = basis_matlab["param"][()]
     n_bases, binsize, end_points, nl_offset = param.tolist()
 
     basis = make_nonlinear_raised_cos(n_bases, binsize, end_points, nl_offset)
 
     basis_recons = basis.func(**basis.kwargs)
     assert np.all(basis.B == basis_recons.B)
-
     assert np.allclose(basis.B[:-1], B)  # NOTE: Unequal size
+
+
+def test_delta_stim_filters_negative_indices():
+    """delta_stim must silently ignore negative bin indices."""
+    bt = np.array([-2, -1, 0, 3, 5, 10])
+    n_bins = 8
+    stim = delta_stim(bt, n_bins)
+
+    assert stim.shape == (n_bins, 1)
+    expected = np.zeros((n_bins, 1))
+    expected[0] = 1.0
+    expected[3] = 1.0
+    expected[5] = 1.0
+    np.testing.assert_array_equal(stim, expected)

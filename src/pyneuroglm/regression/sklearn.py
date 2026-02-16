@@ -106,12 +106,10 @@ def log_evidence_scorer(estimator, X, y):
 
     w = np.asarray(estimator.coef_).ravel()
     X_ = X
-    if hasattr(estimator, "intercept_"):
-        has_intercept = True
+    has_intercept = getattr(estimator, "fit_intercept", False)
+    if has_intercept:
         w = np.concatenate([[estimator.intercept_], w])
         X_ = np.column_stack((np.ones(X.shape[0]), X))
-    else:
-        has_intercept = False
 
     m = X_.shape[1]
     alpha = getattr(estimator, "alpha", 1.0)
@@ -272,6 +270,11 @@ class BayesianGLMRegressor(RegressorMixin, BaseEstimator):
 
         # Prepare initialization kwargs
         init_kwargs = self.init_kwargs if self.init_kwargs is not None else {}
+
+        # For zero initialization with Poisson, the intercept should be
+        # log(mean(y)) so that exp(w0) = mean(y) at the starting point.
+        if self.initialize == "zero" and self.dist == "poisson":
+            init_kwargs.setdefault("nlin", np.log)
 
         # Fit the model using get_posterior_weights
         w, sd, invH = get_posterior_weights(
