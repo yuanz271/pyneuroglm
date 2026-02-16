@@ -61,6 +61,19 @@ This document enumerates those differences explicitly.
 - Posterior weight interpretation may require additional bookkeeping
 - Structured priors are harder to implement without extensions
 
+### 2.4 Z-score Weight Inversion (Bug Fix)
+
+| Aspect | MATLAB neuroGLM | pyneuroglm |
+|--------|-----------------|------------|
+| `combineWeights` z-score undo | `w .* sigma + mu` | `w / sigma` |
+
+MATLAB `combineWeights.m` (line 22) uses `w .* sigma + mu` to undo
+z-scoring when reconstructing weights. This formula inverts the data
+transform (`X = Z * sigma + mu`) rather than the weight transform.
+For z-scored data `Z = (X - mu) / sigma`, original-space weights are
+`w_orig = w_z / sigma`, not `w_z * sigma + mu`. pyneuroglm corrects
+this bug.
+
 ---
 
 ## 3. Supported Priors

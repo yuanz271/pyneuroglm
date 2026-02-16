@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 
 from pyneuroglm.basis import make_smooth_temporal_basis, conv_basis, make_nonlinear_raised_cos
+from pyneuroglm.design import DesignMatrix
 from pyneuroglm.experiment import Experiment, Trial, Variable
 
 
@@ -75,3 +76,34 @@ def test_make_nonlinear_raised_cos():
     assert np.all(basis.B == basis_recons.B)
 
     assert np.allclose(basis.B[:-1], B)  # NOTE: Unequal size
+
+
+def test_combine_weights_zscore_inversion():
+    """Verify combine_weights correctly inverts z-scored design matrix columns."""
+    np.random.seed(42)
+    expt = Experiment(time_unit="ms", binsize=10, eid=1)
+    expt.register_continuous("signal", "Test signal")
+
+    n_bins = expt.binfun(500, True)
+    trial = Trial(tid=0, duration=500)
+    trial["signal"] = np.random.randn(n_bins) * 5 + 10  # non-zero mean, large std
+    expt.add_trial(trial)
+
+    dm = DesignMatrix(expt)
+    dm.add_covariate_raw("signal", "Test signal")
+    X = dm.compile_design_matrix()
+
+    # True weights in original space
+    w_true = np.array([2.0])
+    y = X @ w_true
+
+    # Z-score and fit
+    dm.zscore_columns()
+    X_z = dm.X
+    w_z = np.linalg.lstsq(X_z, y, rcond=None)[0]
+
+    # combine_weights should recover original-space weights
+    ws = dm.combine_weights(w_z)
+    w_recovered = ws["signal"]["data"]
+
+    np.testing.assert_allclose(w_recovered.flatten(), w_true, atol=1e-10)

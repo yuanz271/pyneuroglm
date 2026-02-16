@@ -441,7 +441,7 @@ class DesignMatrix:
         assert self.edim == len(w)
 
         if self.zstats:
-            w = w * self.zstats["s"].squeeze() + self.zstats["m"].squeeze()
+            w = w / self.zstats["s"].squeeze()
 
         sections = np.cumsum([covar.edim for covar in self.covariates.values()])[:-1]
 

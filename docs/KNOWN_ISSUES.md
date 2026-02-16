@@ -9,7 +9,7 @@ Bugs identified in `src/pyneuroglm/` as of 2026-02-15. Ordered by severity.
 | # | Severity | File | Line | Summary |
 |---|----------|------|------|---------|
 | 1 | FIXED | `regression/optim.py` | 62 | `Objective` cache stores array reference — stale gradient/Hessian |
-| 2 | High | `design.py` | 453 | `combine_weights` z-score inversion formula is wrong |
+| 2 | FIXED | `design.py` | 453 | `combine_weights` z-score inversion formula is wrong |
 | 3 | Medium | `regression/sklearn.py` | 109 | `log_evidence_scorer` always adds intercept |
 | 4 | Medium | `design.py` | 170 | `add_covariate_constant` ignores `stim_label` parameter |
 | 5 | Medium | `design.py` | 407 | `compile_design_matrix` crashes when `condition` excludes a covariate |
@@ -62,7 +62,10 @@ adjustment: `intercept_orig = intercept_z - (m / s) @ w_z`.
 **Impact:** Any user who calls `zscore_columns()` then `combine_weights()`
 gets incorrect weight reconstructions.
 
-**Fix:** Replace with `w = w / self.zstats["s"].squeeze()`.
+**Fixed:** Replaced `w * s + m` with `w / s` in `design.py:444`. This is an
+inherited bug from MATLAB neuroGLM (`+buildGLM/combineWeights.m` line 22),
+which uses the same wrong formula `w .* sigma + mu`. Regression test in
+`tests/test_pyneuroglm.py::test_combine_weights_zscore_inversion`.
 
 ---
 
