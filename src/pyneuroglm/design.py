@@ -394,13 +394,18 @@ class DesignMatrix:
         binfun = self.experiment.binfun
         trials = self._filter_trials(trial_indices)
 
+        # Precompute column indices for each covariate
+        edims = [covar.edim for covar in self.covariates.values()]
+        csum = np.cumsum(edims).tolist()
+        col_starts = [0] + csum[:-1]
+
         X = []
         for trial in trials:
             n_bins = binfun(trial.duration, True)
-            Xt = []
-            for covar in self.covariates.values():
-                if covar.condition is not None and not covar.condition(trial):  # skip trial
-                    continue
+            Xt = np.zeros((n_bins, self.edim))
+            for col0, covar in zip(col_starts, self.covariates.values()):
+                if covar.condition is not None and not covar.condition(trial):
+                    continue  # columns stay zero
                 stim = covar.handler(trial)
 
                 if stim.ndim == 1:
@@ -410,9 +415,7 @@ class DesignMatrix:
                     Xc = stim
                 else:
                     Xc = conv_basis(stim, covar.basis, ceil(covar.offset / self.experiment.binsize))
-                Xt.append(Xc)
-            Xt = np.column_stack(Xt)
-            assert Xt.shape == (n_bins, self.edim)
+                Xt[:, col0 : col0 + covar.edim] = Xc
             if not np.all(np.isfinite(Xt)):
                 warnings.warn("Design matrix contains NaN or Inf")
             # if self.bias:

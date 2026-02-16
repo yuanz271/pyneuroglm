@@ -154,3 +154,41 @@ def test_add_covariate_constant_uses_stim_label():
     n_bins = expt.binfun(100, True)
     assert X.shape == (n_bins, 1)
     np.testing.assert_allclose(X[:, 0], 0.5)
+
+
+def test_compile_design_matrix_with_condition():
+    """compile_design_matrix must zero-fill columns when condition excludes a covariate."""
+    expt = Experiment(time_unit="ms", binsize=10, eid=1)
+    expt.register_timing("event1", "Event 1")
+    expt.register_timing("event2", "Event 2")
+
+    trial1 = Trial(tid=1, duration=500)
+    trial1["event1"] = np.array([100.0, 200.0])
+    trial1["event2"] = np.array([150.0, 300.0])
+
+    trial2 = Trial(tid=2, duration=500)
+    trial2["event1"] = np.array([50.0])
+    trial2["event2"] = np.array([250.0])
+
+    expt.add_trial(trial1)
+    expt.add_trial(trial2)
+
+    dm = DesignMatrix(expt)
+    basis = make_smooth_temporal_basis("raised cosine", 200, 3, expt.binfun)
+
+    dm.add_covariate_timing("event1", basis=basis)
+    # event2 only applies to trial 1
+    dm.add_covariate_timing("event2", basis=basis, condition=lambda t: t.tid == 1)
+
+    X = dm.compile_design_matrix()
+    n_bins = expt.binfun(500, True)
+
+    assert X.shape == (2 * n_bins, 6)  # 2 trials, 2 covariates x 3 basis each
+
+    # Trial 2's event2 columns (cols 3-5) should be all zeros
+    X_trial2 = X[n_bins:, :]
+    np.testing.assert_array_equal(X_trial2[:, 3:6], 0.0)
+
+    # Trial 1's event2 columns should have nonzero entries
+    X_trial1 = X[:n_bins, :]
+    assert np.any(X_trial1[:, 3:6] != 0.0)

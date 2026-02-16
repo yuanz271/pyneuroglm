@@ -12,7 +12,7 @@ Bugs identified in `src/pyneuroglm/` as of 2026-02-15. Ordered by severity.
 | 2 | FIXED | `design.py` | 453 | `combine_weights` z-score inversion formula is wrong |
 | 3 | FIXED | `regression/sklearn.py` | 109 | `log_evidence_scorer` always adds intercept |
 | 4 | FIXED | `design.py` | 170 | `add_covariate_constant` ignores `stim_label` parameter |
-| 5 | Medium | `design.py` | 407 | `compile_design_matrix` crashes when `condition` excludes a covariate |
+| 5 | FIXED | `design.py` | 407 | `compile_design_matrix` crashes when `condition` excludes a covariate |
 | 6 | Low | `basis.py` | 243 | `delta_stim` doesn't filter negative bin indices |
 | 7 | Low | `regression/prior.py` | 45 | `ridge_Cinv` docstring claims wrong return shape |
 | 8 | Low | `regression/posterior.py` | 165 | `initialize_zero` sets intercept to `mean(y)` not `log(mean(y))` |
@@ -125,8 +125,11 @@ assertion `Xt.shape == (n_bins, self.edim)` fails with `AssertionError`.
 **Impact:** The `condition` parameter on any `add_covariate_*` method is
 unusable — it always crashes if any trial is excluded.
 
-**Fix:** Insert a zero block of shape `(n_bins, covar.edim)` when the
-condition excludes a covariate, instead of skipping it.
+**Fixed:** Replaced `append`/`column_stack` with pre-allocated
+`np.zeros((n_bins, self.edim))` and column-index assignment, matching the
+MATLAB `compileSparseDesignMatrix.m` approach. Excluded covariates leave
+their columns as zeros. Regression test in
+`tests/test_pyneuroglm.py::test_compile_design_matrix_with_condition`.
 
 ---
 
