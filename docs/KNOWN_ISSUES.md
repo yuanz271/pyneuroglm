@@ -13,7 +13,7 @@ Bugs identified in `src/pyneuroglm/` as of 2026-02-15. Ordered by severity.
 | 3 | FIXED | `regression/sklearn.py` | 109 | `log_evidence_scorer` always adds intercept |
 | 4 | FIXED | `design.py` | 170 | `add_covariate_constant` ignores `stim_label` parameter |
 | 5 | FIXED | `design.py` | 407 | `compile_design_matrix` crashes when `condition` excludes a covariate |
-| 6 | Low | `basis.py` | 243 | `delta_stim` doesn't filter negative bin indices |
+| 6 | FIXED | `basis.py` | 243 | `delta_stim` doesn't filter negative bin indices |
 | 7 | Low | `regression/prior.py` | 45 | `ridge_Cinv` docstring claims wrong return shape |
 | 8 | Low | `regression/posterior.py` | 165 | `initialize_zero` sets intercept to `mean(y)` not `log(mean(y))` |
 
@@ -147,7 +147,9 @@ index reaches `coo_matrix`, scipy raises
 `t >= 0`, so negative indices are unlikely but not impossible (e.g., if
 `delta_stim` is called directly with raw data).
 
-**Fix:** `bidx = (bt >= 0) & (bt < n_bins)`
+**Fixed:** Changed `bidx = bt < n_bins` to `bidx = (bt >= 0) & (bt < n_bins)`
+in `basis.py:243`. Regression test in
+`tests/test_pyneuroglm.py::test_delta_stim_filters_negative_indices`.
 
 ---
 

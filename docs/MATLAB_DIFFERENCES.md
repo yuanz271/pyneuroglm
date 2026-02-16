@@ -74,6 +74,18 @@ For z-scored data `Z = (X - mu) / sigma`, original-space weights are
 `w_orig = w_z / sigma`, not `w_z * sigma + mu`. pyneuroglm corrects
 this bug.
 
+### 2.5 `delta_stim` Negative Index Filtering
+
+| Aspect | MATLAB neuroGLM | pyneuroglm |
+|--------|-----------------|------------|
+| `deltaStim` index filter | `bt <= nT` (upper bound only) | `(bt >= 0) & (bt < n_bins)` |
+
+MATLAB `deltaStim.m` filters only the upper bound (`bidx = bt <= nT`).
+Negative indices would cause an error in MATLAB's `sparse()` just as they
+would in scipy's `coo_matrix`. pyneuroglm adds a lower bound check as
+defensive hardening. In normal usage negative indices cannot occur because
+`binfun` enforces `t >= 0`.
+
 ---
 
 ## 3. Supported Priors

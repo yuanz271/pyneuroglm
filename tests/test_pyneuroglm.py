@@ -5,7 +5,12 @@ from pathlib import Path
 
 import numpy as np
 
-from pyneuroglm.basis import make_smooth_temporal_basis, conv_basis, make_nonlinear_raised_cos
+from pyneuroglm.basis import (
+    make_smooth_temporal_basis,
+    conv_basis,
+    make_nonlinear_raised_cos,
+    delta_stim,
+)
 from pyneuroglm.design import DesignMatrix
 from pyneuroglm.experiment import Experiment, Trial, Variable
 
@@ -192,3 +197,18 @@ def test_compile_design_matrix_with_condition():
     # Trial 1's event2 columns should have nonzero entries
     X_trial1 = X[:n_bins, :]
     assert np.any(X_trial1[:, 3:6] != 0.0)
+
+
+def test_delta_stim_filters_negative_indices():
+    """delta_stim must silently ignore negative bin indices."""
+    bt = np.array([-2, -1, 0, 3, 5, 10])
+    n_bins = 8
+    stim = delta_stim(bt, n_bins)
+
+    assert stim.shape == (n_bins, 1)
+    # Only bins 0, 3, 5 should have impulses
+    expected = np.zeros((n_bins, 1))
+    expected[0] = 1.0
+    expected[3] = 1.0
+    expected[5] = 1.0
+    np.testing.assert_array_equal(stim, expected)

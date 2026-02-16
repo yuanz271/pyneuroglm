@@ -235,7 +235,7 @@ def delta_stim(bt: ArrayLike, n_bins: int, v: NDArray | None = None) -> NDArray:
         Stimulus array of shape (n_bins, 1) with impulses at specified bins.
     """
     bt = np.asarray(bt)
-    bidx = bt < n_bins
+    bidx = (bt >= 0) & (bt < n_bins)
     bt = bt[bidx]
     o = np.zeros_like(bt, dtype=np.int_)
 
