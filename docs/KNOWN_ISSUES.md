@@ -10,7 +10,7 @@ Bugs identified in `src/pyneuroglm/` as of 2026-02-15. Ordered by severity.
 |---|----------|------|------|---------|
 | 1 | FIXED | `regression/optim.py` | 62 | `Objective` cache stores array reference — stale gradient/Hessian |
 | 2 | FIXED | `design.py` | 453 | `combine_weights` z-score inversion formula is wrong |
-| 3 | Medium | `regression/sklearn.py` | 109 | `log_evidence_scorer` always adds intercept |
+| 3 | FIXED | `regression/sklearn.py` | 109 | `log_evidence_scorer` always adds intercept |
 | 4 | Medium | `design.py` | 170 | `add_covariate_constant` ignores `stim_label` parameter |
 | 5 | Medium | `design.py` | 407 | `compile_design_matrix` crashes when `condition` excludes a covariate |
 | 6 | Low | `basis.py` | 243 | `delta_stim` doesn't filter negative bin indices |
@@ -86,8 +86,12 @@ without one.
 **Impact:** `score()` and `log_evidence_scorer()` return wrong values when
 `fit_intercept=False`.
 
-**Fix:** Check `getattr(estimator, "fit_intercept", False)` instead of
-`hasattr(estimator, "intercept_")`.
+**Fixed:** Replaced `hasattr(estimator, "intercept_")` with
+`getattr(estimator, "fit_intercept", False)` in `sklearn.py:109`. This
+follows sklearn convention where all linear estimators set `intercept_`
+(to `0.0` when disabled) but only those with `fit_intercept=True` actually
+model an intercept. Regression test in
+`tests/test_pyneuroglm.py::test_log_evidence_scorer_respects_fit_intercept`.
 
 ---
 

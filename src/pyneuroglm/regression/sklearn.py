@@ -106,12 +106,10 @@ def log_evidence_scorer(estimator, X, y):
 
     w = np.asarray(estimator.coef_).ravel()
     X_ = X
-    if hasattr(estimator, "intercept_"):
-        has_intercept = True
+    has_intercept = getattr(estimator, "fit_intercept", False)
+    if has_intercept:
         w = np.concatenate([[estimator.intercept_], w])
         X_ = np.column_stack((np.ones(X.shape[0]), X))
-    else:
-        has_intercept = False
 
     m = X_.shape[1]
     alpha = getattr(estimator, "alpha", 1.0)

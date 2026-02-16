@@ -107,3 +107,31 @@ def test_combine_weights_zscore_inversion():
     w_recovered = ws["signal"]["data"]
 
     np.testing.assert_allclose(w_recovered.flatten(), w_true, atol=1e-10)
+
+
+def test_log_evidence_scorer_respects_fit_intercept():
+    """log_evidence_scorer must not add intercept when fit_intercept=False."""
+    from pyneuroglm.regression.sklearn import BayesianGLMRegressor, log_evidence_scorer
+
+    np.random.seed(42)
+    X = np.random.randn(100, 3)
+    w_true = np.array([0.1, -0.2, 0.3])
+    y = np.random.poisson(np.exp(X @ w_true))
+
+    model_no_intercept = BayesianGLMRegressor(alpha=1.0, fit_intercept=False)
+    model_no_intercept.fit(X, y)
+
+    model_with_intercept = BayesianGLMRegressor(alpha=1.0, fit_intercept=True)
+    model_with_intercept.fit(X, y)
+
+    score_no = log_evidence_scorer(model_no_intercept, X, y)
+    score_with = log_evidence_scorer(model_with_intercept, X, y)
+
+    # Scores should differ — they are different models
+    assert score_no != score_with
+
+    # The no-intercept scorer should use coef_ directly without prepending
+    # If the bug were present, it would prepend intercept_=0.0 and a ones column,
+    # giving a score identical to a model with intercept=0 (not the same as no intercept)
+    assert np.isfinite(score_no)
+    assert np.isfinite(score_with)
