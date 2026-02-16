@@ -1,4 +1,4 @@
-"""Tests for the Objective cache in pyneuroglm.regression.optim."""
+"""Tests for pyneuroglm.regression.optim."""
 
 import numpy as np
 from scipy.optimize import minimize
@@ -22,14 +22,13 @@ def test_cache_invalidates_on_inplace_mutation():
     v1 = obj.function(x)
     assert v1 == 5.0
 
-    # Mutate in place — simulates scipy reusing the same array object
     x[:] = [3.0, 4.0]
     v2 = obj.function(x)
     assert v2 == 25.0
 
 
-def test_cache_hit_same_values():
-    """Cache should return cached result when called with equal values."""
+def test_cache_hit_and_miss():
+    """Cache should hit for equal values and miss for different values."""
     call_count = 0
 
     def counting_quad(x):
@@ -39,32 +38,18 @@ def test_cache_hit_same_values():
 
     obj = Objective(counting_quad)
 
-    x = np.array([1.0, 2.0])
-    obj.function(x)
+    # First call computes
+    obj.function(np.array([1.0, 2.0]))
     assert call_count == 1
 
-    # Same values, different object — should be a cache hit
+    # Same values, different object -- cache hit
     obj.gradient(np.array([1.0, 2.0]))
     assert call_count == 1
 
     obj.hessian(np.array([1.0, 2.0]))
     assert call_count == 1
 
-
-def test_cache_miss_different_values():
-    """Cache should recompute when called with different values."""
-    call_count = 0
-
-    def counting_quad(x):
-        nonlocal call_count
-        call_count += 1
-        return _quadratic(x)
-
-    obj = Objective(counting_quad)
-
-    obj.function(np.array([1.0, 2.0]))
-    assert call_count == 1
-
+    # Different values -- cache miss
     obj.function(np.array([3.0, 4.0]))
     assert call_count == 2
 
@@ -79,7 +64,7 @@ def test_flip_sign():
     np.testing.assert_array_equal(obj.hessian(x), -2 * np.eye(2))
 
 
-def test_optimizer_convergence_with_cache():
+def test_optimizer_convergence():
     """Objective cache should not break scipy trust-ncg convergence."""
 
     def rosenbrock(x):
@@ -92,13 +77,10 @@ def test_optimizer_convergence_with_cache():
         )
         return float(v), g, H
 
-    obj = Objective(rosenbrock, flip_sign=False)
+    obj = Objective(rosenbrock)
     result = minimize(
-        obj.function,
-        np.array([0.5, 0.5]),
-        method="trust-ncg",
-        jac=obj.gradient,
-        hess=obj.hessian,
+        obj.function, np.array([0.5, 0.5]),
+        method="trust-ncg", jac=obj.gradient, hess=obj.hessian,
         options={"gtol": 1e-8},
     )
 
