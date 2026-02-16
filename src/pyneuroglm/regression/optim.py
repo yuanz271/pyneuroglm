@@ -63,7 +63,7 @@ class Objective:
             Tuple containing (value, gradient, Hessian).
         """
         if self._x is None or self._ret is None or not np.array_equal(x, self._x):
-            self._x = x
+            self._x = x.copy()
             ret = self._fun(x, *args)
             if self._flip_sign:
                 ret = tuple(-v for v in ret)
